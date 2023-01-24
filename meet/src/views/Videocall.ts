@@ -10,6 +10,13 @@ const getUserMedia =
   (navigator as any).webkitGetUserMedia ||
   (navigator as any).mozGetUserMedia;
 
+const videoStyles = {
+  height: '100%',
+  width: '100%',
+  maxWidth: '600px',
+  maxHeight: '400px',
+};
+
 export function Videocall() {
   const roomId = window.location.pathname.split('/')[1];
 
@@ -31,12 +38,7 @@ export function Videocall() {
 
   const myVideo = Video({
     muted: true,
-    styles: {
-      height: '100%',
-      width: '100%',
-      maxWidth: '600px',
-      maxHeight: '400px',
-    },
+    styles: videoStyles,
   });
 
   getUserMedia({
@@ -48,12 +50,7 @@ export function Videocall() {
     myPeer.on('call', (call) => {
       call.answer(stream);
       const video = Video({
-        styles: {
-          height: '100%',
-          width: '100%',
-          maxWidth: '600px',
-          maxHeight: '400px',
-        },
+        styles: videoStyles,
       });
       call.on('stream', (userVideoStream) => {
         addVideoStream(video, userVideoStream);
@@ -82,12 +79,7 @@ export function Videocall() {
   function connectToNewUser(userId, stream) {
     const call = myPeer.call(userId, stream); // call and send our video stream
     const otherUserVideo = Video({
-      styles: {
-        height: '100%',
-        width: '100%',
-        maxWidth: '600px',
-        maxHeight: '400px',
-      },
+      styles: videoStyles,
     });
     call.on('stream', (userVideoStream) => {
       addVideoStream(otherUserVideo, userVideoStream);

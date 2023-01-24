@@ -1,4 +1,3 @@
-// import Peer from 'peerjs';
 import { Button } from '../../../labs/ui/components/Button';
 import { Div } from '../../../labs/ui/components/Div';
 import { Input } from '../../../labs/ui/components/Input';
@@ -20,7 +19,7 @@ export function Home() {
   const getIdBtn = Button({
     innerText: 'Get',
     onClick: () => {
-      const input = document.getElementById('input-id');
+      const input = byId('input-id');
       if (input) {
         (input as HTMLInputElement).value = uuidV4();
       }
