@@ -11,20 +11,16 @@ const getUserMedia =
   (navigator as any).webkitGetUserMedia ||
   (navigator as any).mozGetUserMedia;
 
-const videoStyles = {
+const styles = {
   height: '100%',
   width: '100%',
   objectFit: 'cover',
-  position: 'relative',
-  // left: '50%',
-  // right: '50%',
 };
 
 const peers: any = [];
+
 export function Videocall() {
   const roomId = window.location.pathname.split('/')[1];
-  let grid: number = 0;
-
   const myPeer = new Peer();
 
   myPeer.on('open', (id) => {
@@ -33,15 +29,18 @@ export function Videocall() {
 
   const el = Div({
     styles: {
-      height: '100vh',
-      display: 'grid',
-      gridGap: '10px',
+      height: '100%',
+      display: 'flex',
+      gap: '10px',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      alignContent: 'center',
     },
   });
 
   const myVideo = Video({
     muted: true,
-    styles: videoStyles,
+    styles,
   });
 
   getUserMedia({
@@ -53,34 +52,23 @@ export function Videocall() {
     myPeer.on('call', (call) => {
       peers.push({ userId: call });
       call.answer(stream);
-      const video = Video({
-        styles: videoStyles,
-      });
+      const video = Video({ styles });
+      video.id = call.peer;
       call.on('stream', (userVideoStream) => {
-        el.style.gridTemplateColumns = `repeat(${calcGrid() + 1}, 1fr)`;
         addVideoStream(video, userVideoStream);
       });
     });
 
     socket.on('user-connected', (userId) => {
-      // console.log('user id', userId);
       connectToNewUser(userId, stream);
-      el.style.gridTemplateColumns = `repeat(${calcGrid() + 1}, 1fr)`;
-      // console.log('connecting to new user', grid, peers);
     });
-    const grid = calcGrid() + 1;
-    const remainingVideos = (peers.length + 1) % grid;
-    console.log('remaining videos', peers.length + 1, grid, remainingVideos);
-    if (remainingVideos) {
-      // console.log('the new video', video);
-      // video.style.left = '50%';
-      // video.style.right = '50%';
-    }
   });
 
   socket.on('user-disconnected', (userId) => {
     const userToDisconnect = peers.find((peer) => peer.userId.peer === userId);
     userToDisconnect?.userId.close();
+    const videoRemoved = byId(userToDisconnect.userId.peer);
+    videoRemoved?.remove();
   });
 
   function addVideoStream(video, stream) {
@@ -88,14 +76,19 @@ export function Videocall() {
     video.addEventListener('loadedmetadata', () => {
       video.play();
     });
+
+    if (el.children.length) {
+      adjustVideoElements();
+    }
+
     el.append(video);
   }
 
   function connectToNewUser(userId, stream) {
     const call = myPeer.call(userId, stream); // call and send our video stream
-    const otherUserVideo = Video({
-      styles: videoStyles,
-    });
+    const otherUserVideo = Video({ styles });
+    otherUserVideo.id = userId;
+
     call.on('stream', (userVideoStream) => {
       addVideoStream(otherUserVideo, userVideoStream);
     });
@@ -105,18 +98,31 @@ export function Videocall() {
     peers.push({ userId: call });
   }
 
-  function calcGrid() {
-    if (peers.length === 1) {
-      grid = 1;
-    } else if (peers.length > 1 && peers.length <= 4) {
-      grid = 2;
-      // } else if (peers.length > 4 && peers.length <= 9) {
-      //   grid = 3;
-    } else if (peers.length > 9) {
-      grid = 4;
+  function getColumns() {
+    let col = 0;
+    if (el.childElementCount === 1) {
+      col = 1;
+    } else if (el.childElementCount > 1 && el.childElementCount <= 4) {
+      col = 2;
+    } else if (el.childElementCount > 4 && el.childElementCount <= 9) {
+      col = 3;
+    } else if (el.childElementCount > 9) {
+      col = 4;
     }
-    // console.log('then grid will be', grid);
-    return grid;
+    return col;
   }
+
+  function adjustVideoElements() {
+    const columns = getColumns();
+    const videoWidth = window.innerWidth / columns;
+    const rows = Math.ceil(el.children.length / columns);
+    const videoHeight = window.innerHeight / rows;
+
+    Array.from(el.children).forEach((child) => {
+      (child as HTMLElement).style.height = (videoHeight - 20).toString();
+      (child as HTMLElement).style.width = (videoWidth - 20).toString();
+    });
+  }
+
   return el;
 }

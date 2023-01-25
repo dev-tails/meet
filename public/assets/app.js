@@ -2764,12 +2764,12 @@
   });
 
   // ../labs/ui/components/Element.ts
-  function setElementStyles(el, styles) {
-    if (!styles) {
+  function setElementStyles(el, styles2) {
+    if (!styles2) {
       return;
     }
-    for (const key of Object.keys(styles)) {
-      el.style[key] = styles[key];
+    for (const key of Object.keys(styles2)) {
+      el.style[key] = styles2[key];
     }
   }
 
@@ -9932,30 +9932,31 @@
   // src/views/Videocall.ts
   var socket = lookup2();
   var getUserMedia = navigator?.mediaDevices?.getUserMedia || navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-  var videoStyles = {
+  var styles = {
     height: "100%",
     width: "100%",
-    objectFit: "cover",
-    position: "relative"
+    objectFit: "cover"
   };
   var peers = [];
   function Videocall() {
     const roomId = window.location.pathname.split("/")[1];
-    let grid = 0;
     const myPeer = new $70d766613f57b014$export$2e2bcd8739ae039();
     myPeer.on("open", (id) => {
       socket.emit("join-room", roomId, id);
     });
     const el = Div({
       styles: {
-        height: "100vh",
-        display: "grid",
-        gridGap: "10px"
+        height: "100%",
+        display: "flex",
+        gap: "10px",
+        flexWrap: "wrap",
+        justifyContent: "center",
+        alignContent: "center"
       }
     });
     const myVideo = Video({
       muted: true,
-      styles: videoStyles
+      styles
     });
     getUserMedia({
       video: true,
@@ -9965,40 +9966,36 @@
       myPeer.on("call", (call) => {
         peers.push({ userId: call });
         call.answer(stream);
-        const video = Video({
-          styles: videoStyles
-        });
+        const video = Video({ styles });
+        video.id = call.peer;
         call.on("stream", (userVideoStream) => {
-          el.style.gridTemplateColumns = `repeat(${calcGrid() + 1}, 1fr)`;
           addVideoStream(video, userVideoStream);
         });
       });
       socket.on("user-connected", (userId) => {
         connectToNewUser(userId, stream);
-        el.style.gridTemplateColumns = `repeat(${calcGrid() + 1}, 1fr)`;
       });
-      const grid2 = calcGrid() + 1;
-      const remainingVideos = (peers.length + 1) % grid2;
-      console.log("remaining videos", peers.length + 1, grid2, remainingVideos);
-      if (remainingVideos) {
-      }
     });
     socket.on("user-disconnected", (userId) => {
       const userToDisconnect = peers.find((peer) => peer.userId.peer === userId);
       userToDisconnect?.userId.close();
+      const videoRemoved = byId(userToDisconnect.userId.peer);
+      videoRemoved?.remove();
     });
     function addVideoStream(video, stream) {
       video.srcObject = stream;
       video.addEventListener("loadedmetadata", () => {
         video.play();
       });
+      if (el.children.length) {
+        adjustVideoElements();
+      }
       el.append(video);
     }
     function connectToNewUser(userId, stream) {
       const call = myPeer.call(userId, stream);
-      const otherUserVideo = Video({
-        styles: videoStyles
-      });
+      const otherUserVideo = Video({ styles });
+      otherUserVideo.id = userId;
       call.on("stream", (userVideoStream) => {
         addVideoStream(otherUserVideo, userVideoStream);
       });
@@ -10007,15 +10004,28 @@
       });
       peers.push({ userId: call });
     }
-    function calcGrid() {
-      if (peers.length === 1) {
-        grid = 1;
-      } else if (peers.length > 1 && peers.length <= 4) {
-        grid = 2;
-      } else if (peers.length > 9) {
-        grid = 4;
+    function getColumns() {
+      let col = 0;
+      if (el.childElementCount === 1) {
+        col = 1;
+      } else if (el.childElementCount > 1 && el.childElementCount <= 4) {
+        col = 2;
+      } else if (el.childElementCount > 4 && el.childElementCount <= 9) {
+        col = 3;
+      } else if (el.childElementCount > 9) {
+        col = 4;
       }
-      return grid;
+      return col;
+    }
+    function adjustVideoElements() {
+      const columns = getColumns();
+      const videoWidth = window.innerWidth / columns;
+      const rows = Math.ceil(el.children.length / columns);
+      const videoHeight = window.innerHeight / rows;
+      Array.from(el.children).forEach((child) => {
+        child.style.height = (videoHeight - 20).toString();
+        child.style.width = (videoWidth - 20).toString();
+      });
     }
     return el;
   }
