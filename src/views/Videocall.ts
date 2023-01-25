@@ -3,7 +3,13 @@ import Peer from 'peerjs';
 import { Div } from '../../../labs/ui/components/Div';
 import { Video } from '../../../labs/ui/components/Video';
 import { byId } from '../../../labs/ui/utils/DomUtils';
+import { Button } from '../../../labs/ui/components/Button';
 const socket = io();
+
+function setURL(url: string) {
+  history.pushState({}, '', url);
+  window.dispatchEvent(new Event('popstate'));
+}
 
 const getUserMedia =
   navigator?.mediaDevices?.getUserMedia ||
@@ -15,6 +21,8 @@ const styles = {
   height: '100%',
   width: '100%',
   objectFit: 'cover',
+  borderRadius: '8px',
+  padding: '4px',
 };
 
 const peers: any = [];
@@ -27,9 +35,11 @@ export function Videocall() {
     socket.emit('join-room', roomId, id);
   });
 
+  const container = Div();
   const el = Div({
     styles: {
       height: '100%',
+      padding: '8px',
       display: 'flex',
       gap: '10px',
       flexWrap: 'wrap',
@@ -60,12 +70,12 @@ export function Videocall() {
     });
 
     socket.on('user-connected', (userId) => {
-      connectToNewUser(userId, stream);
+      setTimeout(connectToNewUser, 1000, userId, stream);
     });
   });
 
   socket.on('user-disconnected', (userId) => {
-    const userToDisconnect = peers.find((peer) => peer.userId.peer === userId);
+    const userToDisconnect = peers.find((peer) => peer.userId?.peer === userId);
     userToDisconnect?.userId.close();
     const videoRemoved = byId(userToDisconnect.userId.peer);
     videoRemoved?.remove();
@@ -123,6 +133,28 @@ export function Videocall() {
       (child as HTMLElement).style.width = (videoWidth - 20).toString();
     });
   }
+  const exitCallButton = Button({
+    innerHTML: '&#128379',
+    styles: {
+      position: 'absolute',
+      right: '20px',
+      bottom: '20px',
+      height: '52px',
+      width: '52px',
+      backgroundColor: '#e62626',
+      border: '1px solid red',
+      borderRadius: '50%',
+      fontSize: '20px',
+      color: '#fff',
+      cursor: 'pointer',
+    },
+    onClick: () => {
+      socket.close();
+      setURL('/');
+    },
+  });
 
-  return el;
+  container.appendChild(el);
+  container.appendChild(exitCallButton);
+  return container;
 }

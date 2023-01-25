@@ -2793,6 +2793,7 @@
     const el = document.createElement("button");
     setElementStyles(el, props?.styles);
     el.innerText = props?.innerText;
+    el.innerHTML = props?.innerHTML;
     if (props?.onClick) {
       el.addEventListener("click", props.onClick);
     }
@@ -2864,18 +2865,22 @@
   function Home() {
     const el = Div();
     const container = Div();
-    const text = Div();
-    text.innerText = "Get random id";
+    const text = Div({ innerText: "Get random id" });
     container.append(text);
-    const myId = Input();
+    const myId = Input({ styles: { width: "300px" } });
     myId.id = "input-id";
     container.append(myId);
+    let randomId = v4_default();
+    const link = document.createElement("a");
+    link.innerText = "Go to link";
+    link.href = `${window.location}${randomId}`;
     const getIdBtn = Button({
-      innerText: "Get",
+      innerHTML: "Get",
       onClick: () => {
         const input = byId("input-id");
         if (input) {
-          input.value = v4_default();
+          input.value = randomId;
+          container.append(link);
         }
       }
     });
@@ -9931,11 +9936,17 @@
 
   // src/views/Videocall.ts
   var socket = lookup2();
+  function setURL(url2) {
+    history.pushState({}, "", url2);
+    window.dispatchEvent(new Event("popstate"));
+  }
   var getUserMedia = navigator?.mediaDevices?.getUserMedia || navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
   var styles = {
     height: "100%",
     width: "100%",
-    objectFit: "cover"
+    objectFit: "cover",
+    borderRadius: "8px",
+    padding: "4px"
   };
   var peers = [];
   function Videocall() {
@@ -9944,9 +9955,11 @@
     myPeer.on("open", (id) => {
       socket.emit("join-room", roomId, id);
     });
+    const container = Div();
     const el = Div({
       styles: {
         height: "100%",
+        padding: "8px",
         display: "flex",
         gap: "10px",
         flexWrap: "wrap",
@@ -9973,11 +9986,11 @@
         });
       });
       socket.on("user-connected", (userId) => {
-        connectToNewUser(userId, stream);
+        setTimeout(connectToNewUser, 1e3, userId, stream);
       });
     });
     socket.on("user-disconnected", (userId) => {
-      const userToDisconnect = peers.find((peer) => peer.userId.peer === userId);
+      const userToDisconnect = peers.find((peer) => peer.userId?.peer === userId);
       userToDisconnect?.userId.close();
       const videoRemoved = byId(userToDisconnect.userId.peer);
       videoRemoved?.remove();
@@ -10027,7 +10040,29 @@
         child.style.width = (videoWidth - 20).toString();
       });
     }
-    return el;
+    const exitCallButton = Button({
+      innerHTML: "&#128379",
+      styles: {
+        position: "absolute",
+        right: "20px",
+        bottom: "20px",
+        height: "52px",
+        width: "52px",
+        backgroundColor: "#e62626",
+        border: "1px solid red",
+        borderRadius: "50%",
+        fontSize: "20px",
+        color: "#fff",
+        cursor: "pointer"
+      },
+      onClick: () => {
+        socket.close();
+        setURL("/");
+      }
+    });
+    container.appendChild(el);
+    container.appendChild(exitCallButton);
+    return container;
   }
 
   // src/views/Router.ts
