@@ -4,12 +4,8 @@ import { Div } from '../../../labs/ui/components/Div';
 import { Video } from '../../../labs/ui/components/Video';
 import { byId } from '../../../labs/ui/utils/DomUtils';
 import { Button } from '../../../labs/ui/components/Button';
+import { setURL } from '../../../labs/chat/fe/src/utils/HistoryUtils';
 const socket = io();
-
-function setURL(url: string) {
-  history.pushState({}, '', url);
-  window.dispatchEvent(new Event('popstate'));
-}
 
 const getUserMedia =
   navigator?.mediaDevices?.getUserMedia ||
