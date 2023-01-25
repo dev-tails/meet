@@ -2807,6 +2807,11 @@
     return input;
   }
 
+  // ../labs/ui/utils/DomUtils.ts
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
   // node_modules/uuid/dist/esm-browser/rng.js
   var getRandomValues;
   var rnds8 = new Uint8Array(16);
@@ -2868,7 +2873,7 @@
     const getIdBtn = Button({
       innerText: "Get",
       onClick: () => {
-        const input = document.getElementById("input-id");
+        const input = byId("input-id");
         if (input) {
           input.value = v4_default();
         }
@@ -9900,8 +9905,8 @@
       if (cb === void 0)
         cb = function(_) {
         };
-      this._api.listAllPeers().then(function(peers) {
-        return cb(peers);
+      this._api.listAllPeers().then(function(peers2) {
+        return cb(peers2);
       }).catch(function(error) {
         return _this._abort($60fadef21a2daafc$export$9547aaa2e39030ff.ServerError, error);
       });
@@ -9927,9 +9932,16 @@
   // src/views/Videocall.ts
   var socket = lookup2();
   var getUserMedia = navigator?.mediaDevices?.getUserMedia || navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+  var videoStyles = {
+    height: "100%",
+    width: "100%",
+    objectFit: "cover",
+    position: "relative"
+  };
+  var peers = [];
   function Videocall() {
     const roomId = window.location.pathname.split("/")[1];
-    const peers = {};
+    let grid = 0;
     const myPeer = new $70d766613f57b014$export$2e2bcd8739ae039();
     myPeer.on("open", (id) => {
       socket.emit("join-room", roomId, id);
@@ -9937,19 +9949,13 @@
     const el = Div({
       styles: {
         height: "100vh",
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center"
+        display: "grid",
+        gridGap: "10px"
       }
     });
     const myVideo = Video({
       muted: true,
-      styles: {
-        height: "100%",
-        width: "100%",
-        maxWidth: "600px",
-        maxHeight: "400px"
-      }
+      styles: videoStyles
     });
     getUserMedia({
       video: true,
@@ -9957,27 +9963,29 @@
     }).then((stream) => {
       addVideoStream(myVideo, stream);
       myPeer.on("call", (call) => {
+        peers.push({ userId: call });
         call.answer(stream);
         const video = Video({
-          styles: {
-            height: "100%",
-            width: "100%",
-            maxWidth: "600px",
-            maxHeight: "400px"
-          }
+          styles: videoStyles
         });
         call.on("stream", (userVideoStream) => {
+          el.style.gridTemplateColumns = `repeat(${calcGrid() + 1}, 1fr)`;
           addVideoStream(video, userVideoStream);
         });
       });
       socket.on("user-connected", (userId) => {
         connectToNewUser(userId, stream);
+        el.style.gridTemplateColumns = `repeat(${calcGrid() + 1}, 1fr)`;
       });
+      const grid2 = calcGrid() + 1;
+      const remainingVideos = (peers.length + 1) % grid2;
+      console.log("remaining videos", peers.length + 1, grid2, remainingVideos);
+      if (remainingVideos) {
+      }
     });
     socket.on("user-disconnected", (userId) => {
-      if (peers[userId]) {
-        peers[userId].close();
-      }
+      const userToDisconnect = peers.find((peer) => peer.userId.peer === userId);
+      userToDisconnect?.userId.close();
     });
     function addVideoStream(video, stream) {
       video.srcObject = stream;
@@ -9989,12 +9997,7 @@
     function connectToNewUser(userId, stream) {
       const call = myPeer.call(userId, stream);
       const otherUserVideo = Video({
-        styles: {
-          height: "100%",
-          width: "100%",
-          maxWidth: "600px",
-          maxHeight: "400px"
-        }
+        styles: videoStyles
       });
       call.on("stream", (userVideoStream) => {
         addVideoStream(otherUserVideo, userVideoStream);
@@ -10002,14 +10005,28 @@
       call.on("close", () => {
         otherUserVideo.remove();
       });
-      peers[userId] = call;
+      peers.push({ userId: call });
+    }
+    function calcGrid() {
+      if (peers.length === 1) {
+        grid = 1;
+      } else if (peers.length > 1 && peers.length <= 4) {
+        grid = 2;
+      } else if (peers.length > 9) {
+        grid = 4;
+      }
+      return grid;
     }
     return el;
   }
 
   // src/views/Router.ts
   function Router() {
-    const router = Div({ styles: { height: "100%", overflow: "hidden" } });
+    const router = Div({
+      styles: {
+        height: "100%"
+      }
+    });
     function init() {
       handleRouteUpdated();
     }

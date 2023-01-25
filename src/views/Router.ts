@@ -6,11 +6,6 @@ export function Router() {
   const router = Div({
     styles: {
       height: '100%',
-      overflow: 'hidden',
-      // display: 'grid',
-      // gridTemplateColumns: 'repeat(3, 1fr)',
-      // gridTemplateRows: 'repeat(2, 1fr)',
-      // gridGap: '10px',
     },
   });
 
