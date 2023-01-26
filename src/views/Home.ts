@@ -26,7 +26,7 @@ export function Home() {
   container.append(text);
   const input = Input({
     styles: {
-      width: '480px',
+      width: '500px',
       height: '40px',
       padding: '8px',
       fontSize: '14px',
