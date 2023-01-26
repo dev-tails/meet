@@ -4,7 +4,8 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "build": "esbuild src/app.ts --bundle --outfile=public/assets/app.js"
+    "build": "esbuild src/app.ts --bundle --outfile=public/assets/app.js",
+    "start": "node server.js"
   },
   "devDependencies": {
     "esbuild": "^0.14.27"
