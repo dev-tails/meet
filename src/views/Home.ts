@@ -31,13 +31,12 @@ export function Home() {
       padding: '8px',
       fontSize: '14px',
       borderRadius: '4px',
-      border: '1px solid #f1f2f3',
-      backgroundColor: '#f1f2f3',
+      border: '1px solid #708090',
+      background: 'none',
       color: '#333',
       outline: 'none',
     },
   });
-  input.disabled = true;
 
   const links = Div({ styles: { marginTop: '12px' } });
   let randomId = uuidV4();
@@ -51,7 +50,7 @@ export function Home() {
       color: '#fff',
     },
     onClick: () => {
-      setURL(`${window.location}${randomId}`);
+      setURL(input.value);
     },
   });
 
@@ -77,7 +76,7 @@ export function Home() {
       input.select();
       input.setSelectionRange(0, 99999);
 
-      navigator.clipboard.writeText(`${window.location}${randomId}`);
+      navigator.clipboard.writeText(input.value);
       copied.style.opacity = '1';
       copyLink.append(copied);
       setTimeout(() => {

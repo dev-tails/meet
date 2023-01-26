@@ -2887,13 +2887,12 @@
         padding: "8px",
         fontSize: "14px",
         borderRadius: "4px",
-        border: "1px solid #f1f2f3",
-        backgroundColor: "#f1f2f3",
+        border: "1px solid #708090",
+        background: "none",
         color: "#333",
         outline: "none"
       }
     });
-    input.disabled = true;
     const links = Div({ styles: { marginTop: "12px" } });
     let randomId = v4_default();
     const startMeeting = Button({
@@ -2905,7 +2904,7 @@
         color: "#fff"
       },
       onClick: () => {
-        setURL(`${window.location}${randomId}`);
+        setURL(input.value);
       }
     });
     const copied = Div({
@@ -2929,7 +2928,7 @@
       onClick: () => {
         input.select();
         input.setSelectionRange(0, 99999);
-        navigator.clipboard.writeText(`${window.location}${randomId}`);
+        navigator.clipboard.writeText(input.value);
         copied.style.opacity = "1";
         copyLink.append(copied);
         setTimeout(() => {
@@ -10013,7 +10012,10 @@
     width: "100%",
     objectFit: "cover",
     borderRadius: "8px",
-    padding: "4px"
+    padding: "4px",
+    transform: "rotateY(180deg)",
+    "-webkit-transform": "rotateY(180deg)",
+    "-moz-transform": "rotateY(180deg)"
   };
   var peers = [];
   function Videocall() {

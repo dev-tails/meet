@@ -19,6 +19,9 @@ const styles = {
   objectFit: 'cover',
   borderRadius: '8px',
   padding: '4px',
+  transform: 'rotateY(180deg)',
+  '-webkit-transform': 'rotateY(180deg)',
+  '-moz-transform': 'rotateY(180deg)',
 };
 
 const peers: any = [];
