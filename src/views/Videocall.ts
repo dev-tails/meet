@@ -1,9 +1,7 @@
 import { io } from 'socket.io-client';
 import Peer from 'peerjs';
-import { Div } from '../ui/components/Div';
-import { Video } from '../ui/components/Video';
+import { Div, Button, Video } from '../ui/components';
 import { byId } from '../utils/DomUtils';
-import { Button } from '../ui/components/Button';
 import { setURL } from '../utils/HistoryUtils';
 const socket = io();
 

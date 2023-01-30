@@ -1,6 +1,4 @@
-import { Button } from '../ui/components/Button';
-import { Div } from '../ui/components/Div';
-import { Input } from '../ui/components/Input';
+import { Button, Div, Input } from '../ui/components/';
 import { setURL } from '../utils/HistoryUtils';
 import { v4 as uuidV4 } from 'uuid';
 
