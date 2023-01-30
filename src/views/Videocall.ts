@@ -1,10 +1,10 @@
 import { io } from 'socket.io-client';
 import Peer from 'peerjs';
-import { Div } from '../../../labs/ui/components/Div';
-import { Video } from '../../../labs/ui/components/Video';
-import { byId } from '../../../labs/ui/utils/DomUtils';
-import { Button } from '../../../labs/ui/components/Button';
-import { setURL } from '../../../labs/chat/fe/src/utils/HistoryUtils';
+import { Div } from '../ui/components/Div';
+import { Video } from '../ui/components/Video';
+import { byId } from '../utils/DomUtils';
+import { Button } from '../ui/components/Button';
+import { setURL } from '../utils/HistoryUtils';
 const socket = io();
 
 const getUserMedia =
@@ -29,9 +29,14 @@ const peers: any = [];
 export function Videocall() {
   const roomId = window.location.pathname.split('/')[1];
   const myPeer = new Peer();
+  let myVideoId = '';
+  let myStream: any = null;
 
   myPeer.on('open', (id) => {
-    socket.emit('join-room', roomId, id);
+    const video = document.getElementsByTagName('video')?.[0];
+    myVideoId = id;
+    video.id = myVideoId;
+    socket.emit('join-room', roomId, myVideoId);
   });
 
   const container = Div();
@@ -58,6 +63,7 @@ export function Videocall() {
   }).then((stream) => {
     addVideoStream(myVideo, stream);
 
+    myStream = stream;
     myPeer.on('call', (call) => {
       peers.push({ userId: call });
       call.answer(stream);
@@ -152,8 +158,51 @@ export function Videocall() {
       setURL('/');
     },
   });
+  const muteMyselfButton = Button({
+    innerHTML: 'MUTE',
+    styles: {
+      position: 'absolute',
+      right: '80px',
+      bottom: '20px',
+      height: '52px',
+      width: '52px',
+      backgroundColor: '#e62626',
+      border: '1px solid red',
+      borderRadius: '50%',
+      fontSize: '20px',
+      color: '#fff',
+      cursor: 'pointer',
+    },
+    onClick: () => {
+      // const vid = document.getElementById(myVideoId) as HTMLVideoElement;
+      // if (!vid) {
+      //   console.log('no video');
+      //   return;
+      // }
+      // vid.autoplay = true;
+      // vid.muted = true;
+      // vid.srcObject = stream;
+      console.log('my sream', myStream.getAudioTracks()[0]);
+
+      const audioTracks = myStream.getAudioTracks()[0];
+      // console.log('audio tracks', audioTracks);
+      if (audioTracks.enabled) {
+        console.log('1');
+
+        muteMyselfButton.innerHTML = 'mute';
+        audioTracks.enabled = false;
+      } else {
+        console.log('2');
+        muteMyselfButton.innerHTML = 'UNMUTE';
+        audioTracks.enabled = true;
+      }
+      // console.log('peers', peers[0].getAudioTracks);
+      // mediaStream.getAudioTracks()[0].enabled = false;
+    },
+  });
 
   container.appendChild(el);
   container.appendChild(exitCallButton);
+  container.appendChild(muteMyselfButton);
   return container;
 }

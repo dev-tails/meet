@@ -1,7 +1,7 @@
-import { Button } from '../../../labs/ui/components/Button';
-import { Div } from '../../../labs/ui/components/Div';
-import { Input } from '../../../labs/ui/components/Input';
-import { setURL } from '../../../labs/chat/fe/src/utils/HistoryUtils';
+import { Button } from '../ui/components/Button';
+import { Div } from '../ui/components/Div';
+import { Input } from '../ui/components/Input';
+import { setURL } from '../utils/HistoryUtils';
 import { v4 as uuidV4 } from 'uuid';
 
 const buttonLinks = {
