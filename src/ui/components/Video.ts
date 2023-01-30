@@ -13,5 +13,5 @@ export function Video(params?: {
     el.muted = params.muted;
   }
 
-  return el;
+  return el as HTMLVideoElement;
 }

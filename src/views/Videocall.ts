@@ -95,6 +95,9 @@ export function Videocall() {
     }
 
     el.append(video);
+    if (el.children.length > 1) {
+      container.appendChild(muteMyselfButton);
+    }
   }
 
   function connectToNewUser(userId, stream) {
@@ -172,35 +175,18 @@ export function Videocall() {
       cursor: 'pointer',
     },
     onClick: () => {
-      // const vid = document.getElementById(myVideoId) as HTMLVideoElement;
-      // if (!vid) {
-      //   console.log('no video');
-      //   return;
-      // }
-      // vid.autoplay = true;
-      // vid.muted = true;
-      // vid.srcObject = stream;
-      console.log('my sream', myStream.getAudioTracks()[0]);
-
       const audioTracks = myStream.getAudioTracks()[0];
-      // console.log('audio tracks', audioTracks);
       if (audioTracks.enabled) {
-        console.log('1');
-
-        muteMyselfButton.innerHTML = 'mute';
+        muteMyselfButton.innerHTML = 'unmute';
         audioTracks.enabled = false;
       } else {
-        console.log('2');
-        muteMyselfButton.innerHTML = 'UNMUTE';
+        muteMyselfButton.innerHTML = 'mute';
         audioTracks.enabled = true;
       }
-      // console.log('peers', peers[0].getAudioTracks);
-      // mediaStream.getAudioTracks()[0].enabled = false;
     },
   });
 
   container.appendChild(el);
   container.appendChild(exitCallButton);
-  container.appendChild(muteMyselfButton);
   return container;
 }
