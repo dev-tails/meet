@@ -3,6 +3,11 @@ import Peer from 'peerjs';
 import { Div, Button, Video } from '../ui/components';
 import { byId } from '../utils/DomUtils';
 import { setURL } from '../utils/HistoryUtils';
+import {
+  microphoneIcon,
+  microphoneSlashIcon,
+  phoneIcon,
+} from '../utils/FontAwesomeIcons';
 const socket = io();
 
 const getUserMedia =
@@ -20,6 +25,17 @@ const styles = {
   transform: 'rotateY(180deg)',
   '-webkit-transform': 'rotateY(180deg)',
   '-moz-transform': 'rotateY(180deg)',
+};
+
+const buttonStyles = {
+  height: '40px',
+  width: '40px',
+  backgroundColor: '#c7c7c7',
+  border: '1px solid #c7c7c7',
+  borderRadius: '50%',
+  fontSize: '18px',
+  color: '#fff',
+  cursor: 'pointer',
 };
 
 const peers: any = [];
@@ -96,7 +112,7 @@ export function Videocall() {
 
     el.append(video);
     if (el.children.length > 1) {
-      container.appendChild(muteMyselfButton);
+      buttons.prepend(muteButton);
     }
   }
 
@@ -139,54 +155,47 @@ export function Videocall() {
       (child as HTMLElement).style.width = (videoWidth - 20).toString();
     });
   }
-  const exitCallButton = Button({
-    innerHTML: '&#128379',
+
+  const buttons = Div({
     styles: {
-      position: 'absolute',
+      width: '100%',
+      display: 'flex',
+      position: 'fixed',
+      bottom: '40px',
+      justifyContent: 'center',
+    },
+  });
+  const exitCallButton = Button({
+    innerHTML: phoneIcon,
+    styles: {
+      ...buttonStyles,
       right: '20px',
-      bottom: '20px',
-      height: '52px',
-      width: '52px',
       backgroundColor: '#e62626',
-      border: '1px solid red',
-      borderRadius: '50%',
-      fontSize: '20px',
-      color: '#fff',
-      cursor: 'pointer',
+      borderColor: '#e62626',
+      transform: 'rotate(137deg)',
+      marginLeft: '8px',
     },
     onClick: () => {
       socket.close();
       setURL('/');
     },
   });
-  const muteMyselfButton = Button({
-    innerHTML: 'MUTE',
-    styles: {
-      position: 'absolute',
-      right: '80px',
-      bottom: '20px',
-      height: '52px',
-      width: '52px',
-      backgroundColor: '#e62626',
-      border: '1px solid red',
-      borderRadius: '50%',
-      fontSize: '20px',
-      color: '#fff',
-      cursor: 'pointer',
-    },
+  const muteButton = Button({
+    innerHTML: microphoneIcon,
+    styles: buttonStyles,
     onClick: () => {
       const audioTracks = myStream.getAudioTracks()[0];
       if (audioTracks.enabled) {
-        muteMyselfButton.innerHTML = 'unmute';
+        muteButton.innerHTML = microphoneSlashIcon;
         audioTracks.enabled = false;
       } else {
-        muteMyselfButton.innerHTML = 'mute';
+        muteButton.innerHTML = microphoneIcon;
         audioTracks.enabled = true;
       }
     },
   });
-
-  container.appendChild(el);
-  container.appendChild(exitCallButton);
+  buttons.append(exitCallButton);
+  container.append(el);
+  container.append(buttons);
   return container;
 }
