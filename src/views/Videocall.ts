@@ -231,8 +231,13 @@ export function Videocall() {
 }
 
 function onMuteKeydownCmd(event) {
-  keys.meta = event.key === shortcutKey ? true : false;
-  keys.d = event.key === 'd' ? true : false;
+  if (event.key === shortcutKey) {
+    keys.meta = true;
+  }
+
+  if (event.key === 'd') {
+    keys.d = true;
+  }
 
   if (keys.meta && keys.d) {
     event.preventDefault();
