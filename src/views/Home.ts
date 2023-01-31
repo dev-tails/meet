@@ -1,6 +1,7 @@
 import { Button, Div, Input } from '../ui/components/';
 import { setURL } from '../utils/HistoryUtils';
 import { v4 as uuidV4 } from 'uuid';
+import { copyIcon } from '../utils/FontAwesomeIcons';
 
 const buttonLinks = {
   padding: '8px',
@@ -69,7 +70,7 @@ export function Home() {
     },
   });
   const copyLink = Button({
-    innerHTML: 'Copy for later &nbsp&#x1F5CE',
+    innerHTML: `Copy for later ${copyIcon}`,
     onClick: () => {
       input.select();
       input.setSelectionRange(0, 99999);
