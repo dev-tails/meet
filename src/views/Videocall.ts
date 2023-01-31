@@ -16,6 +16,14 @@ const getUserMedia =
   (navigator as any).webkitGetUserMedia ||
   (navigator as any).mozGetUserMedia;
 
+const isMac =
+  (navigator as any)?.userAgentData?.platform === 'macOS' ||
+  navigator.userAgent.includes('(Mac');
+
+const shortcutKey = isMac ? 'Meta' : 'Control';
+
+let keys = { meta: false, d: false };
+
 const styles = {
   height: '100%',
   width: '100%',
@@ -30,8 +38,8 @@ const styles = {
 const buttonStyles = {
   height: '40px',
   width: '40px',
-  backgroundColor: '#c7c7c7',
-  border: '1px solid #c7c7c7',
+  backgroundColor: '#aaaaaa',
+  border: '1px solid #aaaaaa',
   borderRadius: '50%',
   fontSize: '18px',
   color: '#fff',
@@ -40,17 +48,14 @@ const buttonStyles = {
 
 const peers: any = [];
 
+let myStream: any = null;
 export function Videocall() {
   const roomId = window.location.pathname.split('/')[1];
   const myPeer = new Peer();
-  let myVideoId = '';
-  let myStream: any = null;
+  let muteButtonHovered = false;
 
   myPeer.on('open', (id) => {
-    const video = document.getElementsByTagName('video')?.[0];
-    myVideoId = id;
-    video.id = myVideoId;
-    socket.emit('join-room', roomId, myVideoId);
+    socket.emit('join-room', roomId, id);
   });
 
   const container = Div();
@@ -177,25 +182,92 @@ export function Videocall() {
     },
     onClick: () => {
       socket.close();
+      removeEventListeners();
       setURL('/');
     },
   });
+
+  const muteTextTooltip = Div({
+    innerText: `Mute microphone (${isMac ? '⌘' : 'Ctrl'} + d)`,
+    styles: {
+      background: '#636363',
+      width: 'max-content',
+      padding: '4px 12px',
+      borderRadius: '4px',
+      fontSize: '14px',
+      position: 'absolute',
+      transform: ' translate(-45%, 20px)',
+      opacity: '0',
+      transition: 'opacity 1s',
+    },
+  });
+
   const muteButton = Button({
+    id: 'mute-btn',
     innerHTML: microphoneIcon,
     styles: buttonStyles,
-    onClick: () => {
-      const audioTracks = myStream.getAudioTracks()[0];
-      if (audioTracks.enabled) {
-        muteButton.innerHTML = microphoneSlashIcon;
-        audioTracks.enabled = false;
-      } else {
-        muteButton.innerHTML = microphoneIcon;
-        audioTracks.enabled = true;
-      }
+    onClick: muteSelf,
+    onMouseEnter: () => {
+      muteButtonHovered = true;
+      muteButton.style.backgroundColor = '#919191';
+      muteButton.style.borderColor = '#919191';
+      muteTextTooltip.style.opacity = '1';
+      muteButton.append(muteTextTooltip);
+    },
+    onMouseLeave: () => {
+      muteButton.style.backgroundColor = '#aaaaaa';
+      muteButton.style.borderColor = '#aaaaaa';
+      muteButtonHovered = false;
+      !muteButtonHovered &&
+        setTimeout(() => {
+          muteTextTooltip.style.opacity = '0';
+        }, 200);
     },
   });
   buttons.append(exitCallButton);
   container.append(el);
   container.append(buttons);
+
+  addEventListeners();
   return container;
+}
+
+function onMuteKeydownCmd(event) {
+  keys.meta = event.key === shortcutKey ? true : false;
+  keys.d = event.key === 'd' ? true : false;
+
+  if (keys.meta && keys.d) {
+    event.preventDefault();
+    muteSelf();
+  }
+}
+
+function onMuteKeyupCmd(event) {
+  if (event.key === shortcutKey || event.key === 'd') {
+    keys.meta = false;
+    keys.d = false;
+  }
+}
+
+function muteSelf() {
+  const audioTracks = myStream.getAudioTracks()[0];
+  const muteButton = byId('mute-btn') as HTMLButtonElement;
+
+  if (audioTracks.enabled) {
+    muteButton && (muteButton.innerHTML = microphoneSlashIcon);
+    audioTracks.enabled = false;
+  } else {
+    muteButton && (muteButton.innerHTML = microphoneIcon);
+    audioTracks.enabled = true;
+  }
+}
+
+function addEventListeners() {
+  document.addEventListener('keydown', onMuteKeydownCmd);
+  document.addEventListener('keyup', onMuteKeyupCmd);
+}
+
+export function removeEventListeners() {
+  document.removeEventListener('keydown', onMuteKeydownCmd);
+  document.removeEventListener('keyup', onMuteKeyupCmd);
 }
