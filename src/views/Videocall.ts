@@ -175,7 +175,7 @@ export function Videocall() {
       right: '20px',
       backgroundColor: '#d73030',
       transform: 'rotate(137deg)',
-      marginLeft: '8px',
+      marginLeft: '12px',
     },
     onClick: () => {
       socket.close();

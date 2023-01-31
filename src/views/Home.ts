@@ -1,16 +1,17 @@
 import { Button, Div, Input } from '../ui/components/';
 import { setURL } from '../utils/HistoryUtils';
-import { v4 as uuidV4 } from 'uuid';
 import { copyIcon } from '../utils/FontAwesomeIcons';
 
 const buttonLinks = {
-  padding: '8px',
+  padding: '8px 12px',
   background: 'none',
   cursor: 'pointer',
-  border: '1px solid #438796',
+  border: '1px solid #3760bb',
   borderRadius: '4px',
-  color: '#438796',
+  color: '#3760bb',
   fontSize: '14px',
+  fontFamily: 'Raleway, sans-serif',
+  boxShadow: '0px 2px 6px 1px rgba(0, 0, 0, 0.1)',
 };
 
 export function Home() {
@@ -19,7 +20,7 @@ export function Home() {
   const container = Div();
   const text = Div({
     innerText: 'New meeting',
-    styles: { marginBottom: '12px', fontSize: '18px' },
+    styles: { marginBottom: '12px', fontSize: '16px' },
   });
 
   container.append(text);
@@ -30,22 +31,23 @@ export function Home() {
       padding: '8px',
       fontSize: '14px',
       borderRadius: '4px',
-      border: '1px solid #708090',
+      border: '1px solid #959595',
       background: 'none',
       color: '#333',
       outline: 'none',
+      boxShadow: '0px 2px 6px 1px rgba(0, 0, 0, 0.1)',
     },
   });
 
   const links = Div({ styles: { marginTop: '12px' } });
-  let randomId = uuidV4();
+  let randomId = new Date().getTime();
 
   const startMeeting = Button({
     innerHTML: 'Start meeting now',
     styles: {
       ...buttonLinks,
       marginRight: '20px',
-      backgroundColor: '#438796',
+      backgroundColor: '#3760bb',
       color: '#fff',
     },
     onClick: () => {
@@ -59,8 +61,8 @@ export function Home() {
       position: 'fixed',
       top: '24px',
       left: '50%',
-      border: '1px solid #494f71',
-      backgroundColor: '#494f71',
+      border: '1px solid #636363',
+      backgroundColor: '#636363',
       color: '#fff',
       padding: '8px',
       borderRadius: '4px',
@@ -96,7 +98,7 @@ export function Home() {
       container.append(links);
       getIdBtn.remove();
     },
-    styles: { ...buttonLinks, backgroundColor: '#438796', color: '#fff' },
+    styles: { ...buttonLinks, backgroundColor: '#3760bb', color: '#fff' },
   });
 
   container.append(getIdBtn);
