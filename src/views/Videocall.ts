@@ -24,8 +24,8 @@ const styles = {
 const buttonStyles = {
   height: '40px',
   width: '40px',
-  backgroundColor: '#aaaaaa',
-  border: '1px solid #aaaaaa',
+  backgroundColor: '#7b98d8',
+  border: 'none',
   borderRadius: '50%',
   fontSize: '18px',
   color: '#fff',
@@ -46,6 +46,7 @@ const shortcutKey = isMac ? 'Meta' : 'Control';
 let keys = { meta: false, d: false };
 const peers: any = [];
 let myStream: any = null;
+let isSelfMuted = false;
 
 export function Videocall() {
   const roomId = window.location.pathname.split('/')[1];
@@ -58,6 +59,7 @@ export function Videocall() {
 
   const container = Div();
   const el = Div({
+    id: 'videos',
     styles: {
       height: '100%',
       padding: '8px',
@@ -114,12 +116,10 @@ export function Videocall() {
     }
 
     el.append(video);
-    if (el.children.length > 1) {
-      buttons.prepend(muteButton);
-    }
   }
 
   function connectToNewUser(userId, stream) {
+    stream.getAudioTracks()[0].enabled = !isSelfMuted;
     const call = myPeer.call(userId, stream); // call and send our video stream
     const otherUserVideo = Video({ styles });
     otherUserVideo.id = userId;
@@ -173,8 +173,7 @@ export function Videocall() {
     styles: {
       ...buttonStyles,
       right: '20px',
-      backgroundColor: '#e62626',
-      borderColor: '#e62626',
+      backgroundColor: '#d73030',
       transform: 'rotate(137deg)',
       marginLeft: '8px',
     },
@@ -186,7 +185,7 @@ export function Videocall() {
   });
 
   const muteTextTooltip = Div({
-    innerText: `Mute microphone (${isMac ? '⌘' : 'Ctrl'} + d)`,
+    innerText: `Mute/Unmute (${isMac ? '⌘' : 'Ctrl'} + d)`,
     styles: {
       background: '#636363',
       width: 'max-content',
@@ -207,14 +206,12 @@ export function Videocall() {
     onClick: muteSelf,
     onMouseEnter: () => {
       muteButtonHovered = true;
-      muteButton.style.backgroundColor = '#919191';
-      muteButton.style.borderColor = '#919191';
+      muteButton.style.backgroundColor = '#6485cd';
       muteTextTooltip.style.opacity = '1';
       muteButton.append(muteTextTooltip);
     },
     onMouseLeave: () => {
-      muteButton.style.backgroundColor = '#aaaaaa';
-      muteButton.style.borderColor = '#aaaaaa';
+      muteButton.style.backgroundColor = '#7b98d8';
       muteButtonHovered = false;
       !muteButtonHovered &&
         setTimeout(() => {
@@ -222,11 +219,12 @@ export function Videocall() {
         }, 200);
     },
   });
+  buttons.append(muteButton);
   buttons.append(exitCallButton);
   container.append(el);
   container.append(buttons);
 
-  addEventListeners();
+  addVideocallListeners();
   return container;
 }
 
@@ -253,19 +251,20 @@ function onMuteKeyupCmd(event) {
 }
 
 function muteSelf() {
+  const muteButton = byId('mute-btn');
   const audioTracks = myStream.getAudioTracks()[0];
-  const muteButton = byId('mute-btn') as HTMLButtonElement;
 
   if (audioTracks.enabled) {
-    muteButton && (muteButton.innerHTML = microphoneSlashIcon);
+    muteButton.innerHTML = microphoneSlashIcon;
     audioTracks.enabled = false;
   } else {
-    muteButton && (muteButton.innerHTML = microphoneIcon);
+    muteButton.innerHTML = microphoneIcon;
     audioTracks.enabled = true;
   }
+  isSelfMuted = !isSelfMuted;
 }
 
-function addEventListeners() {
+function addVideocallListeners() {
   document.addEventListener('keydown', onMuteKeydownCmd);
   document.addEventListener('keyup', onMuteKeyupCmd);
 }

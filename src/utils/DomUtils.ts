@@ -1,5 +1,10 @@
 export function byId(id: string) {
-  return document.getElementById(id);
+  const el = document.getElementById(id);
+  if (el !== null) {
+    return el;
+  } else {
+    throw Error(`No element with id ${id} found`);
+  }
 }
 
 export function bySelector(element: Element, selector: string): HTMLDivElement {
