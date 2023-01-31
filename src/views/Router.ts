@@ -1,6 +1,6 @@
 import { Div } from '../ui/components/Div';
 import { Home } from './Home';
-import { removeEventListeners, Videocall } from './Videocall';
+import { removeVideocallListeners, Videocall } from './Videocall';
 
 export function Router() {
   const router = Div({
@@ -10,7 +10,7 @@ export function Router() {
   });
 
   function init() {
-    removeEventListeners();
+    removeVideocallListeners();
     handleRouteUpdated();
   }
 

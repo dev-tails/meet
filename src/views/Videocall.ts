@@ -10,20 +10,6 @@ import {
 } from '../utils/FontAwesomeIcons';
 const socket = io();
 
-const getUserMedia =
-  navigator?.mediaDevices?.getUserMedia ||
-  (navigator as any).getUserMedia ||
-  (navigator as any).webkitGetUserMedia ||
-  (navigator as any).mozGetUserMedia;
-
-const isMac =
-  (navigator as any)?.userAgentData?.platform === 'macOS' ||
-  navigator.userAgent.includes('(Mac');
-
-const shortcutKey = isMac ? 'Meta' : 'Control';
-
-let keys = { meta: false, d: false };
-
 const styles = {
   height: '100%',
   width: '100%',
@@ -46,9 +32,21 @@ const buttonStyles = {
   cursor: 'pointer',
 };
 
-const peers: any = [];
+const getUserMedia =
+  navigator?.mediaDevices?.getUserMedia ||
+  (navigator as any).getUserMedia ||
+  (navigator as any).webkitGetUserMedia ||
+  (navigator as any).mozGetUserMedia;
 
+const isMac =
+  (navigator as any)?.userAgentData?.platform === 'macOS' ||
+  navigator.userAgent.includes('(Mac');
+
+const shortcutKey = isMac ? 'Meta' : 'Control';
+let keys = { meta: false, d: false };
+const peers: any = [];
 let myStream: any = null;
+
 export function Videocall() {
   const roomId = window.location.pathname.split('/')[1];
   const myPeer = new Peer();
@@ -267,7 +265,7 @@ function addEventListeners() {
   document.addEventListener('keyup', onMuteKeyupCmd);
 }
 
-export function removeEventListeners() {
+export function removeVideocallListeners() {
   document.removeEventListener('keydown', onMuteKeydownCmd);
   document.removeEventListener('keyup', onMuteKeyupCmd);
 }
