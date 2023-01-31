@@ -180,7 +180,7 @@ export function Videocall() {
     },
     onClick: () => {
       socket.close();
-      removeEventListeners();
+      removeVideocallListeners();
       setURL('/');
     },
   });
