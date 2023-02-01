@@ -20,7 +20,7 @@ export function Home() {
   const container = Div();
   const text = Div({
     innerText: 'New meeting',
-    styles: { marginBottom: '12px', fontSize: '16px' },
+    styles: { marginBottom: '20px', fontSize: '16px' },
   });
 
   container.append(text);
@@ -39,7 +39,7 @@ export function Home() {
     },
   });
 
-  const links = Div({ styles: { marginTop: '12px' } });
+  const links = Div({ styles: { marginTop: '20px' } });
   let randomId = new Date().getTime();
 
   const startMeeting = Button({

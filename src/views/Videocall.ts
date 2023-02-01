@@ -111,8 +111,12 @@ export function Videocall() {
       video.play();
     });
 
+    if (stream.getVideoTracks()[0].label === 'screen:1:0') {
+      video.style.transform = 'rotateY(0deg)';
+    }
+
     if (el.children.length) {
-      adjustVideoElements();
+      adjustLayout();
     }
 
     el.append(video);
@@ -147,7 +151,7 @@ export function Videocall() {
     return col;
   }
 
-  function adjustVideoElements() {
+  function adjustLayout() {
     const columns = getColumns();
     const videoWidth = window.innerWidth / columns;
     const rows = Math.ceil(el.children.length / columns);
@@ -219,6 +223,46 @@ export function Videocall() {
         }, 200);
     },
   });
+
+  const shareScreenButton = Button({
+    innerHTML: 'SHARE',
+    styles: buttonStyles,
+    onClick: () => {
+      const shareScreen = async () => {
+        const mediaStream =
+          (await getLocalScreenCaptureStream()) as MediaStream;
+
+        const screenTrack =
+          mediaStream?.getVideoTracks()[0] as MediaStreamTrack;
+
+        const call = myPeer.call(
+          peers[0].userId.peer,
+          mediaStream as MediaStream
+        );
+        addVideoStream(Video({ styles }), mediaStream);
+
+        call.on('stream', (userVideoStream) => {
+          call.peerConnection.getSenders()[0].replaceTrack(screenTrack);
+        });
+      };
+
+      const getLocalScreenCaptureStream = async () => {
+        try {
+          const constraints = { video: true, audio: false };
+          const screenCaptureStream =
+            await navigator.mediaDevices.getDisplayMedia(constraints);
+
+          return screenCaptureStream;
+        } catch (error) {
+          console.error('failed to get local screen', error);
+        }
+      };
+      shareScreen();
+    },
+  });
+
+  buttons.append(shareScreenButton);
+  buttons.append(muteButton);
   buttons.append(muteButton);
   buttons.append(exitCallButton);
   container.append(el);
