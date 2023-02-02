@@ -281,7 +281,7 @@ function onMuteKeydownCmd(event) {
     keys.d = true;
   }
 
-  if (keys.meta && keys.d) {
+  if ((keys.meta && keys.d) || (!keys.meta && keys.d)) {
     event.preventDefault();
     muteSelf();
   }
