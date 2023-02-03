@@ -1,7 +1,7 @@
 import { io } from 'socket.io-client';
 import Peer from 'peerjs';
 import { Div, Button, Video } from '../ui/components';
-import { byId, setStyle } from '../utils/DomUtils';
+import { byId } from '../utils/DomUtils';
 import { setURL } from '../utils/HistoryUtils';
 import {
   desktopIcon,
@@ -56,13 +56,19 @@ export function Videocall() {
   const myPeer = new Peer();
   let muteButtonHovered = false;
 
+  const myVideo = Video({
+    muted: true,
+    styles,
+  });
+
   // When we first open the app, have us join a room
   myPeer.on('open', (id) => {
     myUserId = id;
     socket.emit('join-room', roomId, myUserId);
+    myVideo.id = myUserId;
   });
 
-  const container = Div({ styles: { height: '100%' } });
+  const container = Div();
   const el = Div({
     id: 'videos',
     styles: {
@@ -76,17 +82,12 @@ export function Videocall() {
     },
   });
 
-  const myVideo = Video({
-    muted: true,
-    styles,
-  });
-
+  // TODO change promise
   getUserMedia({
     video: true,
     audio: true,
   }).then((stream) => {
     addVideoStream(myVideo, stream); // Display our video to ourselves
-
     myStream = stream;
     // When we join someone's room we will receive a call from them
     myPeer.on('call', (call) => {
@@ -125,11 +126,7 @@ export function Videocall() {
 
   function addVideoStream(video: HTMLVideoElement, stream) {
     video.srcObject = stream;
-    video.addEventListener('loadedmetadata', () => {
-      // Play the video as it loads
-      video.play();
-    });
-
+    video.addEventListener('loadedmetadata', () => video.play());
     el.append(video);
   }
 
@@ -145,56 +142,12 @@ export function Videocall() {
     // Add their video
     call.on('stream', (userVideoStream) => {
       addVideoStream(otherUserVideo, userVideoStream);
+      adjustLayout(userIdScreensharing);
     });
 
     // If they leave, remove their video
-    call.on('close', () => {
-      otherUserVideo.remove();
-    });
+    call.on('close', () => otherUserVideo.remove());
     peers.push({ userId: call });
-  }
-
-  function getColumns() {
-    let col = 0;
-    if (el.childElementCount === 1) {
-      col = 1;
-    } else if (el.childElementCount > 1 && el.childElementCount <= 4) {
-      col = 2;
-    } else if (el.childElementCount > 4 && el.childElementCount <= 9) {
-      col = 3;
-    } else if (el.childElementCount > 9) {
-      col = 4;
-    }
-    return col;
-  }
-
-  function adjustLayout(userScreensharing?: any) {
-    console.log('id of screen sharing user', userScreensharing);
-    if (!!userScreensharing) {
-      const screensharingCapture = byId(userScreensharing);
-      screensharingCapture.style.transform = 'rotateY(0deg)';
-      screensharingCapture.style.objectFit = 'contain';
-      byId('videos').style.width = '16%';
-      byId('videos').style.flexDirection = 'column';
-      container.style.display = 'flex';
-      Array.from(el.children).forEach((child) => {
-        (child as HTMLElement).style.height = 'fit-content';
-        (child as HTMLElement).style.width = '100%';
-      });
-      screensharingCapture.style.width = '84%';
-      container.prepend(screensharingCapture);
-      console.log('AQUI');
-      return;
-    }
-    console.log('afuera ~~~');
-    const columns = getColumns();
-    const videoWidth = window.innerWidth / columns;
-    const rows = Math.ceil(el.children.length / columns);
-    const videoHeight = window.innerHeight / rows;
-    Array.from(el.children).forEach((child) => {
-      (child as HTMLElement).style.height = (videoHeight - 20).toString();
-      (child as HTMLElement).style.width = (videoWidth - 20).toString();
-    });
   }
 
   const buttons = Div({
@@ -265,24 +218,79 @@ export function Videocall() {
     class: 'action-buttons',
     innerHTML: desktopIcon,
     styles: buttonStyles,
-    onClick: async () => {
-      const mediaStream = await getLocalScreenStream();
-      if (!mediaStream) {
-        return;
-      }
-      myStream = mediaStream;
-      // To replace camera with screen share
-      const [screenTrack] = mediaStream.getVideoTracks();
-      userIdScreensharing = myUserId;
-      peers.forEach(async (peer) => {
-        const rtpSender = peer.userId.peerConnection
-          .getSenders()
-          .find((sender) => sender.track.kind === screenTrack.kind);
-        rtpSender.replaceTrack(screenTrack);
-        socket.emit('change-layout', myUserId);
-      });
-    },
+    onClick: startScreenshare,
   });
+
+  async function startScreenshare() {
+    const mediaStream = await getLocalScreenStream();
+    if (!mediaStream) {
+      return;
+    }
+
+    myStream = mediaStream;
+    userIdScreensharing = myUserId;
+
+    // To replace camera with screen share
+    const [screenTrack] = mediaStream.getVideoTracks();
+    peers.forEach((peer) => {
+      const rtpSender = peer.userId.peerConnection
+        .getSenders()
+        .find((sender) => sender.track.kind === screenTrack.kind);
+      rtpSender.replaceTrack(screenTrack);
+      socket.emit('change-layout', myUserId);
+    });
+
+    const myVideo = byId(myUserId) as HTMLVideoElement;
+    if (myVideo) {
+      myVideo.srcObject = mediaStream;
+      myVideo.play();
+      adjustLayout(myUserId);
+    }
+  }
+
+  function getColumns() {
+    let col = 0;
+    if (el.childElementCount === 1) {
+      col = 1;
+    } else if (el.childElementCount > 1 && el.childElementCount <= 4) {
+      col = 2;
+    } else if (el.childElementCount > 4 && el.childElementCount <= 9) {
+      col = 3;
+    } else if (el.childElementCount > 9) {
+      col = 4;
+    }
+    return col;
+  }
+
+  function adjustLayout(userScreensharing?: any) {
+    console.log('id of screen sharing user', userScreensharing);
+    const screensharingCapture = byId(userScreensharing);
+
+    screensharingCapture
+      ? screenshareLayout(screensharingCapture as HTMLVideoElement)
+      : regularLayout();
+  }
+
+  function regularLayout() {
+    const columns = getColumns();
+    const videoWidth = window.innerWidth / columns;
+    const rows = Math.ceil(el.children.length / columns);
+    const videoHeight = window.innerHeight / rows;
+    const widthStr = (videoWidth - 20).toString();
+    const heightStr = (videoHeight - 20).toString();
+    updateChildrenMeasurements(el, widthStr, heightStr);
+  }
+
+  function screenshareLayout(screencaptureEl: HTMLVideoElement) {
+    screencaptureEl.style.transform = 'rotateY(0deg)';
+    screencaptureEl.style.objectFit = 'contain';
+    el.style.width = '16%';
+    el.style.flexDirection = 'column';
+    container.style.display = 'flex';
+    screencaptureEl.style.width = '84%';
+    updateChildrenMeasurements(el, '84%', 'fit-content');
+    container.prepend(screencaptureEl);
+  }
 
   buttons.append(shareScreenButton);
   buttons.append(muteButton);
@@ -345,13 +353,24 @@ function muteSelf() {
   const audioTracks = myStream.getAudioTracks()[0];
 
   if (audioTracks.enabled) {
-    muteButton.innerHTML = microphoneSlashIcon;
+    muteButton && (muteButton.innerHTML = microphoneSlashIcon);
     audioTracks.enabled = false;
   } else {
-    muteButton.innerHTML = microphoneIcon;
+    muteButton && (muteButton.innerHTML = microphoneIcon);
     audioTracks.enabled = true;
   }
   isSelfMuted = !isSelfMuted;
+}
+
+function updateChildrenMeasurements(
+  element: HTMLElement,
+  width: string,
+  height: string
+) {
+  Array.from(element.children).forEach((child) => {
+    (child as HTMLElement).style.height = height;
+    (child as HTMLElement).style.width = width;
+  });
 }
 
 function addVideocallListeners() {
