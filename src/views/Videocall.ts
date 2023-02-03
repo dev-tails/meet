@@ -1,7 +1,7 @@
 import { io } from 'socket.io-client';
 import Peer from 'peerjs';
 import { Div, Button, Video } from '../ui/components';
-import { byId } from '../utils/DomUtils';
+import { byId, setStyle } from '../utils/DomUtils';
 import { setURL } from '../utils/HistoryUtils';
 import {
   desktopIcon,
@@ -48,6 +48,8 @@ let keys = { meta: false, d: false };
 const peers: any = [];
 let myStream: any = null;
 let isSelfMuted = false;
+let myUserId = '';
+let userIdScreensharing = '';
 
 export function Videocall() {
   const roomId = window.location.pathname.split('/')[1];
@@ -56,10 +58,11 @@ export function Videocall() {
 
   // When we first open the app, have us join a room
   myPeer.on('open', (id) => {
-    socket.emit('join-room', roomId, id);
+    myUserId = id;
+    socket.emit('join-room', roomId, myUserId);
   });
 
-  const container = Div();
+  const container = Div({ styles: { height: '100%' } });
   const el = Div({
     id: 'videos',
     styles: {
@@ -88,25 +91,30 @@ export function Videocall() {
     // When we join someone's room we will receive a call from them
     myPeer.on('call', (call) => {
       peers.push({ userId: call });
-      console.log('what is my Stream video', myStream);
       call.answer(myStream); // Stream them our video/audio
       const video = Video({ styles });
       video.id = call.peer;
+      console.log('call metadata type', call.metadata);
       // When we recieve their stream
       call.on('stream', (userVideoStream) => {
         // Display their video to ourselves
+
         addVideoStream(video, userVideoStream);
+        if (call.metadata) {
+          userIdScreensharing = call.metadata;
+        }
+        adjustLayout(userIdScreensharing);
       });
     });
 
     // If a new user connect
     socket.on('user-connected', (userId) => {
-      console.log('NEW USER');
-      setTimeout(() => connectToNewUser(userId, myStream), 1000);
+      console.log('call new user and tell him im sharing', userIdScreensharing);
+      connectToNewUser(userId, myStream);
     });
   });
 
-  socket.on('change-layout', () => adjustLayout(true));
+  socket.on('change-layout', adjustLayout);
 
   socket.on('user-disconnected', (userId) => {
     const userToDisconnect = peers.find((peer) => peer.userId?.peer === userId);
@@ -116,31 +124,22 @@ export function Videocall() {
   });
 
   function addVideoStream(video: HTMLVideoElement, stream) {
-    console.log('coming', stream);
     video.srcObject = stream;
     video.addEventListener('loadedmetadata', () => {
       // Play the video as it loads
       video.play();
     });
-    // if (video.id && byId(video.id)) {
-    //   video.style.transform = 'rotateY(0deg)';
-    // }
-
-    if (el.children.length) {
-      adjustLayout();
-    }
 
     el.append(video);
   }
 
   // This runs when someone joins our room
   function connectToNewUser(userId, stream) {
-    console.log('comming stream', userId, stream.getVideoTracks());
     if (stream.getAudioTracks().length) {
       stream.getAudioTracks()[0].enabled = !isSelfMuted;
     }
     // Call the user who just joined
-    const call = myPeer.call(userId, stream); // call and send our video stream
+    const call = myPeer.call(userId, stream, { metadata: userIdScreensharing }); // call and send our video stream
     const otherUserVideo = Video({ styles });
     otherUserVideo.id = userId;
     // Add their video
@@ -169,21 +168,29 @@ export function Videocall() {
     return col;
   }
 
-  function adjustLayout(isSreenshareActive?: boolean) {
-    if (isSreenshareActive) {
+  function adjustLayout(userScreensharing?: any) {
+    console.log('id of screen sharing user', userScreensharing);
+    if (!!userScreensharing) {
+      const screensharingCapture = byId(userScreensharing);
+      screensharingCapture.style.transform = 'rotateY(0deg)';
+      screensharingCapture.style.objectFit = 'contain';
+      byId('videos').style.width = '16%';
+      byId('videos').style.flexDirection = 'column';
+      container.style.display = 'flex';
       Array.from(el.children).forEach((child) => {
-        (child as HTMLElement).style.height = '200px';
-        (child as HTMLElement).style.width = '200px';
+        (child as HTMLElement).style.height = 'fit-content';
+        (child as HTMLElement).style.width = '100%';
       });
+      screensharingCapture.style.width = '84%';
+      container.prepend(screensharingCapture);
+      console.log('AQUI');
       return;
-
-      //   video.style.transform = 'rotateY(0deg)';
     }
+    console.log('afuera ~~~');
     const columns = getColumns();
     const videoWidth = window.innerWidth / columns;
     const rows = Math.ceil(el.children.length / columns);
     const videoHeight = window.innerHeight / rows;
-
     Array.from(el.children).forEach((child) => {
       (child as HTMLElement).style.height = (videoHeight - 20).toString();
       (child as HTMLElement).style.width = (videoWidth - 20).toString();
@@ -199,7 +206,7 @@ export function Videocall() {
       justifyContent: 'center',
     },
   });
-  
+
   const exitCallButton = Button({
     class: 'action-buttons',
     innerHTML: phoneIcon,
@@ -266,15 +273,13 @@ export function Videocall() {
       myStream = mediaStream;
       // To replace camera with screen share
       const [screenTrack] = mediaStream.getVideoTracks();
-      console.log('oeers', peers);
+      userIdScreensharing = myUserId;
       peers.forEach(async (peer) => {
-        const sender = peer.userId.peerConnection
+        const rtpSender = peer.userId.peerConnection
           .getSenders()
-          .find((s) => s.track.kind === screenTrack.kind);
-        console.log('sender', peer, sender);
-        sender.replaceTrack(screenTrack);
-        adjustLayout();
-        socket.emit('change-layout', 'hola');
+          .find((sender) => sender.track.kind === screenTrack.kind);
+        rtpSender.replaceTrack(screenTrack);
+        socket.emit('change-layout', myUserId);
       });
     },
   });
@@ -293,9 +298,19 @@ export function Videocall() {
 async function getLocalScreenStream() {
   try {
     const screenStream = await navigator.mediaDevices.getDisplayMedia({
-      video: true,
-      audio: false,
-    });
+      video: {
+        displaySurface: 'window',
+      },
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 44100,
+        suppressLocalAudioPlayback: true,
+      },
+      surfaceSwitching: 'include',
+      selfBrowserSurface: 'exclude',
+      systemAudio: 'exclude',
+    } as any);
 
     return screenStream;
   } catch (error) {
