@@ -4,6 +4,7 @@ import { Div, Button, Video } from '../ui/components';
 import { byId } from '../utils/DomUtils';
 import { setURL } from '../utils/HistoryUtils';
 import {
+  desktopIcon,
   microphoneIcon,
   microphoneSlashIcon,
   phoneIcon,
@@ -24,12 +25,12 @@ const styles = {
 const buttonStyles = {
   height: '40px',
   width: '40px',
-  backgroundColor: '#7b98d8',
-  border: 'none',
+  backgroundColor: '#3760bb',
   borderRadius: '50%',
   fontSize: '18px',
   color: '#fff',
   cursor: 'pointer',
+  boxShadow: '0px 2px 6px 1px rgba(0, 0, 0, 0.2)',
 };
 
 const getUserMedia =
@@ -198,13 +199,14 @@ export function Videocall() {
       justifyContent: 'center',
     },
   });
+  
   const exitCallButton = Button({
+    class: 'action-buttons',
     innerHTML: phoneIcon,
     styles: {
       ...buttonStyles,
       right: '20px',
       backgroundColor: '#d73030',
-      transform: 'rotate(137deg)',
       marginLeft: '12px',
     },
     onClick: () => {
@@ -213,6 +215,9 @@ export function Videocall() {
       setURL('/');
     },
   });
+
+  const rotatedIcon = exitCallButton.firstChild as SVGAElement;
+  rotatedIcon.style.transform = 'rotate(137deg)';
 
   const muteTextTooltip = Div({
     innerText: `Mute/Unmute (${isMac ? '⌘' : 'Ctrl'} + d)`,
@@ -231,17 +236,16 @@ export function Videocall() {
 
   const muteButton = Button({
     id: 'mute-btn',
+    class: 'action-buttons',
     innerHTML: microphoneIcon,
-    styles: buttonStyles,
+    styles: { ...buttonStyles, marginLeft: '12px' },
     onClick: muteSelf,
     onMouseEnter: () => {
       muteButtonHovered = true;
-      muteButton.style.backgroundColor = '#6485cd';
       muteTextTooltip.style.opacity = '1';
       muteButton.append(muteTextTooltip);
     },
     onMouseLeave: () => {
-      muteButton.style.backgroundColor = '#7b98d8';
       muteButtonHovered = false;
       !muteButtonHovered &&
         setTimeout(() => {
@@ -251,7 +255,8 @@ export function Videocall() {
   });
 
   const shareScreenButton = Button({
-    innerHTML: 'SHARE',
+    class: 'action-buttons',
+    innerHTML: desktopIcon,
     styles: buttonStyles,
     onClick: async () => {
       const mediaStream = await getLocalScreenStream();

@@ -2,6 +2,7 @@ import { setElementStyles } from './Element';
 
 type ButtonProps = {
   id?: string;
+  class?: string;
   innerText?: string;
   innerHTML?: string;
   styles?: Partial<CSSStyleDeclaration>;
@@ -31,6 +32,10 @@ export function Button(props?: ButtonProps) {
   }
   if (props?.id) {
     el.id = props.id;
+  }
+
+  if (props?.class) {
+    el.className = props.class;
   }
 
   return el as HTMLButtonElement;
