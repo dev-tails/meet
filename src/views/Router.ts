@@ -6,6 +6,7 @@ export function Router() {
   const router = Div({
     styles: {
       height: '100%',
+      backgroundColor: '#e7e7e7',
     },
   });
 

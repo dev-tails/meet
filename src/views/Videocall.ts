@@ -15,19 +15,19 @@ const styles = {
   height: '100%',
   width: '100%',
   objectFit: 'cover',
-  borderRadius: '8px',
+  borderRadius: '16px',
   padding: '4px',
 };
 
 const buttonStyles = {
   height: '40px',
   width: '40px',
-  backgroundColor: '#3760bb',
+  backgroundColor: '#fff',
   borderRadius: '50%',
   fontSize: '18px',
-  color: '#fff',
+  color: '#808080',
   cursor: 'pointer',
-  boxShadow: '0px 2px 6px 1px rgba(0, 0, 0, 0.2)',
+  // boxShadow: '0px 2px 6px 1px rgba(0, 0, 0, 0.2)',
 };
 
 const getUserMedia =
@@ -145,7 +145,7 @@ export function Videocall() {
       styles: {
         ...buttonStyles,
         right: '20px',
-        backgroundColor: '#d73030',
+        color: '#d73030',
         marginLeft: '12px',
       },
       onClick: () => {
@@ -162,12 +162,13 @@ export function Videocall() {
       innerText: `Mute/Unmute (${isMac ? '⌘' : 'Ctrl'} + d)`,
       styles: {
         background: '#636363',
+        color: '#fff',
         width: 'max-content',
         padding: '4px 12px',
         borderRadius: '4px',
         fontSize: '14px',
         position: 'absolute',
-        transform: ' translate(-45%, 20px)',
+        transform: ' translate(-45%, -60px)',
         opacity: '0',
         transition: 'opacity 1s',
       },
