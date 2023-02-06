@@ -17,9 +17,6 @@ const styles = {
   objectFit: 'cover',
   borderRadius: '8px',
   padding: '4px',
-  transform: 'rotateY(180deg)',
-  '-webkit-transform': 'rotateY(180deg)',
-  '-moz-transform': 'rotateY(180deg)',
 };
 
 const buttonStyles = {
@@ -58,7 +55,10 @@ export function Videocall() {
 
   const myVideo = Video({
     muted: true,
-    styles,
+    styles: {
+      ...styles,
+      transform: 'rotateY(180deg)',
+    },
   });
 
   myPeer.on('open', (id) => {
@@ -71,7 +71,7 @@ export function Videocall() {
   const el = Div({
     id: 'videos',
     styles: {
-      height: '100%',
+      height: 'calc(100% - 68px)',
       padding: '8px',
       display: 'flex',
       gap: '10px',
@@ -134,7 +134,7 @@ export function Videocall() {
         width: '100%',
         display: 'flex',
         position: 'fixed',
-        bottom: '40px',
+        bottom: '20px',
         justifyContent: 'center',
       },
     });
@@ -281,7 +281,7 @@ export function Videocall() {
       const columns = getColumns();
       const videoWidth = window.innerWidth / columns;
       const rows = Math.ceil(el.children.length / columns);
-      const videoHeight = window.innerHeight / rows;
+      const videoHeight = el.offsetHeight / rows;
       const widthStr = (videoWidth - 20).toString();
       const heightStr = (videoHeight - 20).toString();
       updateChildrenMeasurements(el, widthStr, heightStr);
