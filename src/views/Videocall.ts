@@ -101,9 +101,9 @@ export function Videocall() {
       /* When we receive their stream */
       call.on('stream', (userVideoStream) => {
         addVideoStream(video, userVideoStream);
-        if (call.metadata) {
-          userIdScreensharing = call.metadata;
-        }
+        // if (call.metadata) {
+        userIdScreensharing = call.metadata;
+        // }
         adjustLayout(userIdScreensharing);
       });
     });
@@ -200,7 +200,7 @@ export function Videocall() {
       class: 'action-buttons',
       innerHTML: desktopIcon,
       styles: buttonStyles,
-      onClick: handleScreenshare,
+      onClick: onSharecaptureClick,
     });
 
     function addVideoStream(video: HTMLVideoElement, stream: MediaStream) {
@@ -231,7 +231,7 @@ export function Videocall() {
       peers.push({ userId: call });
     }
 
-    function screenSharing(stream: MediaStream) {
+    function handleSharescreen(stream: MediaStream) {
       const [screenTrack] = stream.getVideoTracks();
       peers.forEach((peer) => {
         const peerConnection = peer.userId.peerConnection;
@@ -240,7 +240,7 @@ export function Videocall() {
             .getSenders()
             .find((sender) => sender.track.kind === screenTrack.kind);
           rtpSender.replaceTrack(screenTrack);
-          socket.emit('change-layout', myUserId);
+          socket.emit('change-layout', isScreensharing ? '' : myUserId);
         }
       });
 
@@ -258,73 +258,30 @@ export function Videocall() {
         ? '#fff'
         : '#afb9f3';
       shareScreenButton.style.color = isScreensharing ? '#808080' : '#5d5cd4';
-      stream.getVideoTracks()[0].onended = () => screenSharing(myStream);
+      stream.getVideoTracks()[0].onended = function () {
+        handleSharescreen(myStream);
+      };
 
       isScreensharing = isScreensharing ? false : true;
       userIdScreensharing = isScreensharing ? '' : myUserId;
     }
 
-    async function handleScreenshare() {
+    async function onSharecaptureClick() {
       if (isScreensharing) return;
 
       let stream: MediaStream | undefined;
       stream = await getLocalScreenStream();
       if (!stream) return;
-      screenSharing(stream);
+      handleSharescreen(stream);
     }
 
-    function getColumns() {
-      let col = 0;
-      if (el.childElementCount === 1) {
-        col = 1;
-      } else if (el.childElementCount > 1 && el.childElementCount <= 4) {
-        col = 2;
-      } else if (el.childElementCount > 4 && el.childElementCount <= 9) {
-        col = 3;
-      } else if (el.childElementCount > 9) {
-        col = 4;
-      }
-      return col;
-    }
+    function adjustLayout(userScreensharing?: string) {
+      const screencaptureEl =
+        userScreensharing && (byId(userScreensharing) as HTMLVideoElement);
 
-    function adjustLayout(userScreensharing?: any) {
-      console.log('id of screen sharing user', userScreensharing);
-      const screensharingCapture = byId(userScreensharing);
-
-      screensharingCapture
-        ? screenshareLayout(screensharingCapture as HTMLVideoElement)
-        : regularLayout();
-    }
-
-    function regularLayout() {
-      const columns = getColumns();
-      const videoWidth = window.innerWidth / columns;
-      const rows = Math.ceil(el.children.length / columns);
-      const videoHeight = el.offsetHeight / rows;
-      const widthStr = (videoWidth - 20).toString();
-      const heightStr = (videoHeight - 20).toString();
-      updateChildrenMeasurements(el, widthStr, heightStr);
-    }
-
-    function screenshareLayout(screencaptureEl: HTMLVideoElement) {
-      if (!isScreensharing) {
-        screencaptureEl.style.transform = 'rotateY(0deg)';
-        screencaptureEl.style.objectFit = 'contain';
-        el.style.width = '16%';
-        el.style.flexDirection = 'column';
-        view.style.display = 'flex';
-        view.style.flexDirection = 'row';
-        screencaptureEl.style.width = '84%';
-        view.prepend(screencaptureEl);
-        updateChildrenMeasurements(el, '84%', 'fit-content');
-      } else {
-        screencaptureEl.style.objectFit = 'cover';
-        screencaptureEl.style.transform = 'rotateY(180deg)';
-        el.style.width = 'auto';
-        view.style.display = 'block';
-        el.prepend(screencaptureEl);
-        regularLayout();
-      }
+      screencaptureEl
+        ? screenshareLayout(screencaptureEl, el, view, isScreensharing)
+        : regularLayout(view, el);
     }
 
     buttons.append(shareScreenButton);
@@ -420,6 +377,44 @@ function muteSelf() {
   isSelfMuted = !isSelfMuted;
 }
 
+function screenshareLayout(
+  screencaptureEl: HTMLVideoElement,
+  streamsDiv: HTMLDivElement,
+  parent: HTMLDivElement,
+  screensharing: boolean
+) {
+  if (screensharing) return regularLayout(parent, streamsDiv);
+
+  screencaptureEl.style.transform = 'rotateY(0deg)';
+  screencaptureEl.style.objectFit = 'contain';
+  streamsDiv.style.width = '16%';
+  streamsDiv.style.flexDirection = 'column';
+  parent.style.display = 'flex';
+  parent.style.flexDirection = 'row';
+  screencaptureEl.style.width = '84%';
+  parent.prepend(screencaptureEl);
+  updateChildrenMeasurements(streamsDiv, '84%', 'fit-content');
+}
+
+function regularLayout(parent: HTMLDivElement, streamsDiv: HTMLDivElement) {
+  if (parent.style.flexDirection === 'row') {
+    const screencapture = parent.firstElementChild as HTMLElement;
+    streamsDiv.prepend(screencapture);
+    screencapture.style.objectFit = 'cover';
+    screencapture.style.transform = 'rotateY(180deg)';
+    streamsDiv.style.width = 'auto';
+    parent.style.display = 'block';
+  }
+
+  const columns = getColumns(streamsDiv);
+  const videoWidth = window.innerWidth / columns;
+  const rows = Math.ceil(streamsDiv.children.length / columns);
+  const videoHeight = streamsDiv.offsetHeight / rows;
+  const widthStr = (videoWidth - 20).toString();
+  const heightStr = (videoHeight - 20).toString();
+  updateChildrenMeasurements(streamsDiv, widthStr, heightStr);
+}
+
 function updateChildrenMeasurements(
   element: HTMLElement,
   width: string,
@@ -436,6 +431,22 @@ function mediaAccessBlocked() {
     innerText: 'Access to microphone and camera needed.',
   });
   return noUserMedia;
+}
+
+function getColumns(element: HTMLDivElement) {
+  let col = 0;
+  if (element.childElementCount === 1) {
+    col = 1;
+  } else if (element.childElementCount === 3 && window.innerWidth > 1200) {
+    col = 3;
+  } else if (element.childElementCount > 1 && element.childElementCount <= 4) {
+    col = 2;
+  } else if (element.childElementCount > 4 && element.childElementCount <= 9) {
+    col = 3;
+  } else if (element.childElementCount > 9) {
+    col = 4;
+  }
+  return col;
 }
 
 function addVideocallListeners() {

@@ -23,7 +23,7 @@ io.on('connection', (socket) => {
     socket.join(roomId);
 
     socket.broadcast.to(roomId).emit('user-connected', userId);
-    socket.on('change-layout', () => {
+    socket.on('change-layout', (userId) => {
       socket.broadcast.to(roomId).emit('change-layout', userId);
     });
     socket.on('disconnect', () => {
@@ -32,4 +32,6 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(process.env.PORT, () => console.log(`Listening on port ${process.env.PORT}`));
+server.listen(process.env.PORT, () =>
+  console.log(`Listening on port ${process.env.PORT}`)
+);
