@@ -105,9 +105,9 @@ export function Videocall() {
       /* When we receive their stream */
       call.on('stream', (userVideoStream) => {
         addVideoStream(video, userVideoStream);
-        // if (call.metadata) {
-        userIdScreensharing = call.metadata;
-        // }
+        if (call.metadata) {
+          userIdScreensharing = call.metadata;
+        }
         adjustLayout(userIdScreensharing);
       });
     });
@@ -120,7 +120,10 @@ export function Videocall() {
       connectToNewUser(userId, myStream);
     });
 
-    socket.on('change-layout', adjustLayout);
+    socket.on('change-layout', (userSharing) => {
+      userIdScreensharing = userSharing;
+      adjustLayout(userSharing);
+    });
 
     socket.on('user-disconnected', (userId: string) => {
       const userToDisconnect = peers.find(
@@ -169,7 +172,7 @@ export function Videocall() {
     const muteTextTooltip = Div({
       innerText: `Mute/Unmute (${isMac ? '⌘' : 'Ctrl'} + d)`,
       styles: {
-        background: '#636363',
+        background: '#3f4651',
         color: '#fff',
         width: 'max-content',
         padding: '4px 12px',
@@ -231,34 +234,49 @@ export function Videocall() {
       call.on('stream', (userVideoStream) => {
         addVideoStream(otherUserVideo, userVideoStream);
         adjustLayout(userIdScreensharing);
+        replaceStreamForNewUser(userId);
       });
 
       call.on('close', () => otherUserVideo.remove());
       peers.push({ userId: call });
     }
 
+    function replaceStreamForNewUser(newUser: string) {
+      if (userIdScreensharing === myUserId && localScreenStream) {
+        const [screenTrack] = localScreenStream.getVideoTracks();
+        const newPeer = peers.find((peer) => peer.userId.peer === newUser);
+        const { peerConnection } = newPeer.userId;
+        if (!peerConnection) return;
+        const rtpSender = peerConnection
+          .getSenders()
+          .find((sender) => sender.track.kind === screenTrack.kind);
+        rtpSender.replaceTrack(screenTrack);
+      }
+    }
+
     function handleSharescreen(stream: MediaStream) {
       if (isScreensharing) {
         localScreenStream?.getTracks().forEach((track) => track.stop());
       }
+
+      stream.getVideoTracks()[0].onended = () => handleSharescreen(myStream);
+
       const [screenTrack] = stream.getVideoTracks();
-      userIdScreensharing = isScreensharing ? '' : myUserId;
       peers.forEach((peer) => {
-        const peerConnection = peer.userId.peerConnection;
-        if (peerConnection) {
-          const rtpSender = peer.userId.peerConnection
-            .getSenders()
-            .find((sender) => sender.track.kind === screenTrack.kind);
-          rtpSender.replaceTrack(screenTrack);
-          socket.emit('change-layout', userIdScreensharing);
-        }
+        const { peerConnection } = peer.userId;
+        if (!peerConnection) return;
+        const rtpSender = peerConnection
+          .getSenders()
+          .find((sender) => sender.track.kind === screenTrack.kind);
+        rtpSender.replaceTrack(screenTrack);
+        socket.emit('change-layout', isScreensharing ? '' : myUserId);
       });
 
       const myVideo = byId(myUserId) as HTMLVideoElement;
       if (myVideo) {
         myVideo.srcObject = stream;
         myVideo.play();
-        adjustLayout(myUserId);
+        // adjustLayout(myUserId);
       }
 
       shareScreenButton.style.border = isScreensharing
@@ -268,11 +286,9 @@ export function Videocall() {
         ? '#fff'
         : '#afb9f3';
       shareScreenButton.style.color = isScreensharing ? '#808080' : '#5d5cd4';
-      stream.getVideoTracks()[0].onended = function () {
-        handleSharescreen(myStream);
-      };
 
       isScreensharing = isScreensharing ? false : true;
+      userIdScreensharing = myUserId;
     }
 
     async function onSharecaptureClick() {
@@ -291,8 +307,8 @@ export function Videocall() {
       const screencaptureEl =
         userScreensharing && (byId(userScreensharing) as HTMLVideoElement);
 
-      screencaptureEl
-        ? screenshareLayout(screencaptureEl, el, view, isScreensharing)
+      screencaptureEl && !isScreensharing
+        ? screenshareLayout(screencaptureEl, el, view)
         : regularLayout(view, el);
     }
 
@@ -392,11 +408,8 @@ function muteSelf() {
 function screenshareLayout(
   screencaptureEl: HTMLVideoElement,
   streamsDiv: HTMLDivElement,
-  parent: HTMLDivElement,
-  screensharing: boolean
+  parent: HTMLDivElement
 ) {
-  if (screensharing) return regularLayout(parent, streamsDiv);
-
   screencaptureEl.style.transform = 'rotateY(0deg)';
   screencaptureEl.style.objectFit = 'contain';
   streamsDiv.style.width = '16%';
@@ -405,19 +418,23 @@ function screenshareLayout(
   parent.style.flexDirection = 'row';
   parent.style.height = '100%';
   screencaptureEl.style.width = '84%';
-  screencaptureEl.style.height = '100%';
+  screencaptureEl.style.height = 'calc(100% - 68px)';
   parent.prepend(screencaptureEl);
   updateChildrenMeasurements(streamsDiv, '100%', 'fit-content');
 }
 
 function regularLayout(parent: HTMLDivElement, streamsDiv: HTMLDivElement) {
   if (parent.style.flexDirection === 'row') {
-    const screencapture = parent.firstElementChild as HTMLElement;
-    streamsDiv.prepend(screencapture);
-    screencapture.style.objectFit = 'cover';
-    screencapture.style.transform = 'rotateY(180deg)';
     streamsDiv.style.width = 'auto';
     parent.style.display = 'block';
+  }
+
+  const firstChild = parent.firstElementChild?.tagName === 'video';
+  if (firstChild) {
+    const prevScreensharing = parent.firstElementChild as HTMLVideoElement;
+    streamsDiv.prepend(prevScreensharing);
+    prevScreensharing.style.objectFit = 'cover';
+    prevScreensharing.style.transform = 'rotateY(180deg)';
   }
 
   const columns = getColumns(streamsDiv);
@@ -450,6 +467,8 @@ function mediaAccessBlocked() {
 function getColumns(element: HTMLDivElement) {
   let col = 0;
   if (element.childElementCount === 1) {
+    col = 1;
+  } else if (element.childElementCount === 2) {
     col = 1;
   } else if (element.childElementCount === 3 && window.innerWidth > 1200) {
     col = 3;
