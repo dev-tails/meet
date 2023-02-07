@@ -51,13 +51,7 @@ let userIdScreensharing = '';
 
 export function Videocall() {
   const roomId = window.location.pathname.split('/')[1];
-  const myPeer = new Peer({
-    host: '0.peerjs.com',
-    port: 443,
-    path: '/',
-    pingInterval: 5000,
-    allowDiscovery: true,
-  } as any);
+  const myPeer = new Peer();
   let muteButtonHovered = false;
 
   const myVideo = Video({
