@@ -258,26 +258,18 @@ export function Videocall() {
         ? '#fff'
         : '#afb9f3';
       shareScreenButton.style.color = isScreensharing ? '#808080' : '#5d5cd4';
-      stream.getVideoTracks()[0].onended = function () {
-        screenSharing(myStream);
-      };
+      stream.getVideoTracks()[0].onended = () => screenSharing(myStream);
 
       isScreensharing = isScreensharing ? false : true;
       userIdScreensharing = isScreensharing ? '' : myUserId;
     }
 
     async function handleScreenshare() {
+      if (isScreensharing) return;
+
       let stream: MediaStream | undefined;
-      if (isScreensharing) {
-        stream = await getLocalUserMedia();
-        if (!stream) {
-          view.append(mediaAccessBlocked());
-          return view;
-        }
-      } else {
-        stream = await getLocalScreenStream();
-        if (!stream) return;
-      }
+      stream = await getLocalScreenStream();
+      if (!stream) return;
       screenSharing(stream);
     }
 
@@ -321,9 +313,10 @@ export function Videocall() {
         el.style.width = '16%';
         el.style.flexDirection = 'column';
         view.style.display = 'flex';
+        view.style.flexDirection = 'row';
         screencaptureEl.style.width = '84%';
-        updateChildrenMeasurements(el, '84%', 'fit-content');
         view.prepend(screencaptureEl);
+        updateChildrenMeasurements(el, '84%', 'fit-content');
       } else {
         screencaptureEl.style.objectFit = 'cover';
         screencaptureEl.style.transform = 'rotateY(180deg)';
@@ -454,74 +447,3 @@ export function removeVideocallListeners() {
   document.removeEventListener('keydown', onMuteKeydownCmd);
   document.removeEventListener('keyup', onMuteKeyupCmd);
 }
-
-// async function startScreenshare() {
-//   console.log('isCre', isScreensharing);
-//   if (isScreensharing) {
-//     const stream = await getLocalUserMedia();
-//     if (!stream) {
-//       view.append(mediaAccessBlocked());
-//       return view;
-//     }
-
-//     screenSharing(stream);
-
-//     // const [screenTrack] = stream.getVideoTracks();
-//     // peers.forEach((peer) => {
-//     //   const rtpSender = peer.userId.peerConnection
-//     //     .getSenders()
-//     //     .find((sender) => sender.track.kind === screenTrack.kind);
-//     //   rtpSender.replaceTrack(screenTrack);
-//     //   socket.emit('change-layout', myUserId);
-//     // });
-
-//     // const myVideo = byId(myUserId) as HTMLVideoElement;
-//     // if (myVideo) {
-//     //   myVideo.srcObject = stream;
-//     //   myVideo.play();
-//     //   adjustLayout(userIdScreensharing);
-//     // }
-//     // shareScreenButton.style.border = 'none';
-//     // shareScreenButton.style.backgroundColor = '#fff';
-//     // shareScreenButton.style.color = '#808080';
-
-//     // userIdScreensharing = '';
-//     // isScreensharing = false;
-//   } else {
-//     const mediaStream = await getLocalScreenStream();
-//     if (!mediaStream) {
-//       return;
-//     }
-//     screenSharing(mediaStream);
-
-//     // userIdScreensharing = myUserId;
-
-//     // const [screenTrack] = mediaStream.getVideoTracks();
-//     // peers.forEach((peer) => {
-//     //   const peerConnection = peer.userId.peerConnection;
-//     //   if (peerConnection) {
-//     //     const rtpSender = peer.userId.peerConnection
-//     //       .getSenders()
-//     //       .find((sender) => sender.track.kind === screenTrack.kind);
-//     //     rtpSender.replaceTrack(screenTrack);
-//     //     socket.emit('change-layout', myUserId);
-//     //   }
-//     // });
-
-//     // const myVideo = byId(myUserId) as HTMLVideoElement;
-//     // if (myVideo) {
-//     //   myVideo.srcObject = mediaStream;
-//     //   myVideo.play();
-//     //   adjustLayout(myUserId);
-//     // }
-
-//     // shareScreenButton.style.border = '1px solid #5d5cd4';
-//     // shareScreenButton.style.backgroundColor = '#afb9f3';
-//     // shareScreenButton.style.color = '#5d5cd4';
-//     // isScreensharing = true;
-//     // mediaStream.getVideoTracks()[0].onended = function () {
-//     //   // doWhatYouNeedToDo();
-//     //   alert('HHHH');
-//     // };
-//   }
-// }
