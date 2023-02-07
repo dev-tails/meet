@@ -45,12 +45,19 @@ let keys = { meta: false, d: false };
 const peers: any = [];
 let myStream: any = null;
 let isSelfMuted = false;
+let isScreensharing = false;
 let myUserId = '';
 let userIdScreensharing = '';
 
 export function Videocall() {
   const roomId = window.location.pathname.split('/')[1];
-  const myPeer = new Peer();
+  const myPeer = new Peer({
+    host: '0.peerjs.com',
+    port: 443,
+    path: '/',
+    pingInterval: 5000,
+    allowDiscovery: true,
+  } as any);
   let muteButtonHovered = false;
 
   const myVideo = Video({
@@ -84,10 +91,7 @@ export function Videocall() {
   async function init() {
     const stream = await getLocalUserMedia();
     if (!stream) {
-      const noUserMedia = Div({
-        innerText: 'Access to microphone and camera needed.',
-      });
-      view.append(noUserMedia);
+      view.append(mediaAccessBlocked());
       return view;
     }
 
@@ -143,9 +147,13 @@ export function Videocall() {
       class: 'action-buttons',
       innerHTML: phoneIcon,
       styles: {
-        ...buttonStyles,
+        width: '60px',
+        borderRadius: '20px',
         right: '20px',
-        color: '#d73030',
+        fontSize: '20px',
+        cursor: 'pointer',
+        backgroundColor: '#d73030',
+        color: '#fff',
         marginLeft: '12px',
       },
       onClick: () => {
@@ -198,7 +206,7 @@ export function Videocall() {
       class: 'action-buttons',
       innerHTML: desktopIcon,
       styles: buttonStyles,
-      onClick: startScreenshare,
+      onClick: handleScreenshare,
     });
 
     function addVideoStream(video: HTMLVideoElement, stream: MediaStream) {
@@ -229,30 +237,54 @@ export function Videocall() {
       peers.push({ userId: call });
     }
 
-    async function startScreenshare() {
-      const mediaStream = await getLocalScreenStream();
-      if (!mediaStream) {
-        return;
-      }
-
-      myStream = mediaStream;
-      userIdScreensharing = myUserId;
-
-      const [screenTrack] = mediaStream.getVideoTracks();
+    function screenSharing(stream: MediaStream) {
+      const [screenTrack] = stream.getVideoTracks();
       peers.forEach((peer) => {
-        const rtpSender = peer.userId.peerConnection
-          .getSenders()
-          .find((sender) => sender.track.kind === screenTrack.kind);
-        rtpSender.replaceTrack(screenTrack);
-        socket.emit('change-layout', myUserId);
+        const peerConnection = peer.userId.peerConnection;
+        if (peerConnection) {
+          const rtpSender = peer.userId.peerConnection
+            .getSenders()
+            .find((sender) => sender.track.kind === screenTrack.kind);
+          rtpSender.replaceTrack(screenTrack);
+          socket.emit('change-layout', myUserId);
+        }
       });
 
       const myVideo = byId(myUserId) as HTMLVideoElement;
       if (myVideo) {
-        myVideo.srcObject = mediaStream;
+        myVideo.srcObject = stream;
         myVideo.play();
         adjustLayout(myUserId);
       }
+
+      shareScreenButton.style.border = isScreensharing
+        ? 'none'
+        : '1px solid #5d5cd4';
+      shareScreenButton.style.backgroundColor = isScreensharing
+        ? '#fff'
+        : '#afb9f3';
+      shareScreenButton.style.color = isScreensharing ? '#808080' : '#5d5cd4';
+      stream.getVideoTracks()[0].onended = function () {
+        screenSharing(myStream);
+      };
+
+      isScreensharing = isScreensharing ? false : true;
+      userIdScreensharing = isScreensharing ? '' : myUserId;
+    }
+
+    async function handleScreenshare() {
+      let stream: MediaStream | undefined;
+      if (isScreensharing) {
+        stream = await getLocalUserMedia();
+        if (!stream) {
+          view.append(mediaAccessBlocked());
+          return view;
+        }
+      } else {
+        stream = await getLocalScreenStream();
+        if (!stream) return;
+      }
+      screenSharing(stream);
     }
 
     function getColumns() {
@@ -289,14 +321,23 @@ export function Videocall() {
     }
 
     function screenshareLayout(screencaptureEl: HTMLVideoElement) {
-      screencaptureEl.style.transform = 'rotateY(0deg)';
-      screencaptureEl.style.objectFit = 'contain';
-      el.style.width = '16%';
-      el.style.flexDirection = 'column';
-      view.style.display = 'flex';
-      screencaptureEl.style.width = '84%';
-      updateChildrenMeasurements(el, '84%', 'fit-content');
-      view.prepend(screencaptureEl);
+      if (!isScreensharing) {
+        screencaptureEl.style.transform = 'rotateY(0deg)';
+        screencaptureEl.style.objectFit = 'contain';
+        el.style.width = '16%';
+        el.style.flexDirection = 'column';
+        view.style.display = 'flex';
+        screencaptureEl.style.width = '84%';
+        updateChildrenMeasurements(el, '84%', 'fit-content');
+        view.prepend(screencaptureEl);
+      } else {
+        screencaptureEl.style.objectFit = 'cover';
+        screencaptureEl.style.transform = 'rotateY(180deg)';
+        el.style.width = 'auto';
+        view.style.display = 'block';
+        el.prepend(screencaptureEl);
+        regularLayout();
+      }
     }
 
     buttons.append(shareScreenButton);
@@ -356,28 +397,37 @@ function onMuteKeydownCmd(event) {
     keys.d = true;
   }
 
-  if ((keys.meta && keys.d) || (!keys.meta && keys.d)) {
+  if (keys.meta && keys.d) {
     event.preventDefault();
     muteSelf();
   }
 }
 
 function onMuteKeyupCmd(event) {
-  if (event.key === shortcutKey || event.key === 'd') {
+  if (event.key === shortcutKey) {
+    keys.meta = false;
+    keys.d = false;
+  }
+
+  if (event.key === 'd') {
     keys.meta = false;
     keys.d = false;
   }
 }
 
 function muteSelf() {
-  const muteButton = byId('mute-btn');
+  const muteButton = byId('mute-btn') as HTMLButtonElement;
   const audioTracks = myStream.getAudioTracks()[0];
 
   if (audioTracks.enabled) {
-    muteButton && (muteButton.innerHTML = microphoneSlashIcon);
+    muteButton.innerHTML = microphoneSlashIcon;
+    muteButton.style.color = '#ee5447';
+    muteButton.style.border = '1px solid #ee5447';
     audioTracks.enabled = false;
   } else {
-    muteButton && (muteButton.innerHTML = microphoneIcon);
+    muteButton.innerHTML = microphoneIcon;
+    muteButton.style.color = '#808080';
+    muteButton.style.border = 'none';
     audioTracks.enabled = true;
   }
   isSelfMuted = !isSelfMuted;
@@ -394,6 +444,13 @@ function updateChildrenMeasurements(
   });
 }
 
+function mediaAccessBlocked() {
+  const noUserMedia = Div({
+    innerText: 'Access to microphone and camera needed.',
+  });
+  return noUserMedia;
+}
+
 function addVideocallListeners() {
   document.addEventListener('keydown', onMuteKeydownCmd);
   document.addEventListener('keyup', onMuteKeyupCmd);
@@ -403,3 +460,74 @@ export function removeVideocallListeners() {
   document.removeEventListener('keydown', onMuteKeydownCmd);
   document.removeEventListener('keyup', onMuteKeyupCmd);
 }
+
+// async function startScreenshare() {
+//   console.log('isCre', isScreensharing);
+//   if (isScreensharing) {
+//     const stream = await getLocalUserMedia();
+//     if (!stream) {
+//       view.append(mediaAccessBlocked());
+//       return view;
+//     }
+
+//     screenSharing(stream);
+
+//     // const [screenTrack] = stream.getVideoTracks();
+//     // peers.forEach((peer) => {
+//     //   const rtpSender = peer.userId.peerConnection
+//     //     .getSenders()
+//     //     .find((sender) => sender.track.kind === screenTrack.kind);
+//     //   rtpSender.replaceTrack(screenTrack);
+//     //   socket.emit('change-layout', myUserId);
+//     // });
+
+//     // const myVideo = byId(myUserId) as HTMLVideoElement;
+//     // if (myVideo) {
+//     //   myVideo.srcObject = stream;
+//     //   myVideo.play();
+//     //   adjustLayout(userIdScreensharing);
+//     // }
+//     // shareScreenButton.style.border = 'none';
+//     // shareScreenButton.style.backgroundColor = '#fff';
+//     // shareScreenButton.style.color = '#808080';
+
+//     // userIdScreensharing = '';
+//     // isScreensharing = false;
+//   } else {
+//     const mediaStream = await getLocalScreenStream();
+//     if (!mediaStream) {
+//       return;
+//     }
+//     screenSharing(mediaStream);
+
+//     // userIdScreensharing = myUserId;
+
+//     // const [screenTrack] = mediaStream.getVideoTracks();
+//     // peers.forEach((peer) => {
+//     //   const peerConnection = peer.userId.peerConnection;
+//     //   if (peerConnection) {
+//     //     const rtpSender = peer.userId.peerConnection
+//     //       .getSenders()
+//     //       .find((sender) => sender.track.kind === screenTrack.kind);
+//     //     rtpSender.replaceTrack(screenTrack);
+//     //     socket.emit('change-layout', myUserId);
+//     //   }
+//     // });
+
+//     // const myVideo = byId(myUserId) as HTMLVideoElement;
+//     // if (myVideo) {
+//     //   myVideo.srcObject = mediaStream;
+//     //   myVideo.play();
+//     //   adjustLayout(myUserId);
+//     // }
+
+//     // shareScreenButton.style.border = '1px solid #5d5cd4';
+//     // shareScreenButton.style.backgroundColor = '#afb9f3';
+//     // shareScreenButton.style.color = '#5d5cd4';
+//     // isScreensharing = true;
+//     // mediaStream.getVideoTracks()[0].onended = function () {
+//     //   // doWhatYouNeedToDo();
+//     //   alert('HHHH');
+//     // };
+//   }
+// }
