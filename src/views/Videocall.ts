@@ -68,7 +68,9 @@ export function Videocall() {
     myVideo.id = myUserId;
   });
 
-  const view = Div();
+  const view = Div({
+    styles: { height: '100%', backgroundColor: '#656565' },
+  });
   const el = Div({
     id: 'videos',
     styles: {
@@ -84,6 +86,8 @@ export function Videocall() {
 
   async function init() {
     const stream = await getLocalUserMedia();
+    let localScreenStream: MediaStream | undefined;
+
     if (!stream) {
       view.append(mediaAccessBlocked());
       return view;
@@ -125,6 +129,7 @@ export function Videocall() {
       userToDisconnect?.userId.close();
       const videoRemoved = byId(userToDisconnect.userId.peer);
       videoRemoved?.remove();
+      adjustLayout();
     });
 
     const buttons = Div({
@@ -152,6 +157,7 @@ export function Videocall() {
       },
       onClick: () => {
         socket.close();
+        myStream.getTracks().forEach((track) => track.stop());
         removeVideocallListeners();
         setURL('/');
       },
@@ -232,7 +238,11 @@ export function Videocall() {
     }
 
     function handleSharescreen(stream: MediaStream) {
+      if (isScreensharing) {
+        localScreenStream?.getTracks().forEach((track) => track.stop());
+      }
       const [screenTrack] = stream.getVideoTracks();
+      userIdScreensharing = isScreensharing ? '' : myUserId;
       peers.forEach((peer) => {
         const peerConnection = peer.userId.peerConnection;
         if (peerConnection) {
@@ -240,7 +250,7 @@ export function Videocall() {
             .getSenders()
             .find((sender) => sender.track.kind === screenTrack.kind);
           rtpSender.replaceTrack(screenTrack);
-          socket.emit('change-layout', isScreensharing ? '' : myUserId);
+          socket.emit('change-layout', userIdScreensharing);
         }
       });
 
@@ -263,14 +273,16 @@ export function Videocall() {
       };
 
       isScreensharing = isScreensharing ? false : true;
-      userIdScreensharing = isScreensharing ? '' : myUserId;
     }
 
     async function onSharecaptureClick() {
-      if (isScreensharing) return;
-
       let stream: MediaStream | undefined;
-      stream = await getLocalScreenStream();
+      if (!isScreensharing) {
+        stream = await getLocalScreenStream();
+        localScreenStream = stream;
+      } else {
+        stream = await getLocalUserMedia();
+      }
       if (!stream) return;
       handleSharescreen(stream);
     }
@@ -391,9 +403,11 @@ function screenshareLayout(
   streamsDiv.style.flexDirection = 'column';
   parent.style.display = 'flex';
   parent.style.flexDirection = 'row';
+  parent.style.height = '100%';
   screencaptureEl.style.width = '84%';
+  screencaptureEl.style.height = '100%';
   parent.prepend(screencaptureEl);
-  updateChildrenMeasurements(streamsDiv, '84%', 'fit-content');
+  updateChildrenMeasurements(streamsDiv, '100%', 'fit-content');
 }
 
 function regularLayout(parent: HTMLDivElement, streamsDiv: HTMLDivElement) {
