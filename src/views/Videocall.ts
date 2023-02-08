@@ -298,7 +298,7 @@ export function Videocall() {
 
     function adjustLayout(userScreensharing?: string) {
       const screencaptureEl =
-        userScreensharing && (byId(userScreensharing) as HTMLVideoElement);
+        userScreensharing && (byId(userScreensharing) as HTMLDivElement);
       console.log(
         'adjusting layout: ',
         userScreensharing,
@@ -423,32 +423,35 @@ function videoWrap(
 }
 
 function screenshareLayout(
-  screencaptureEl: HTMLVideoElement,
+  main: HTMLDivElement,
   parent: HTMLDivElement,
   streamsDiv: HTMLDivElement
 ) {
-  screencaptureEl.style.transform = 'rotateY(0deg)';
+  main.style.transform = 'rotateY(0deg)';
 
-  const video = screencaptureEl.firstChild as HTMLVideoElement;
+  const video = main.firstChild as HTMLVideoElement;
   video.style.width = '100%';
   video.style.height = '100%';
   video.style.objectFit = 'contain';
 
-  streamsDiv.style.width = '16%';
-  streamsDiv.style.flexFlow = 'column no-wrap';
-  parent.style.display = 'flex';
-  parent.style.flexDirection = 'row';
-  parent.style.height = '100%';
-  screencaptureEl.style.width = '84%';
-  screencaptureEl.style.height = 'calc(100% - 68px)';
-  parent.prepend(screencaptureEl);
-  updateChildrenMeasurements(streamsDiv, '100%', 'auto', '100%', 'auto'); //if not change width wrapper to auto as well
+  const secondary = byId(myUserId) as HTMLDivElement;
 
   if (peers.length >= 2) {
-    const me = byId(myUserId) as HTMLDivElement;
-    me.style.position = '';
-    me.style.margin = '';
-    streamsDiv.append(me);
+    streamsDiv.style.width = '16%';
+    streamsDiv.style.flexFlow = 'column no-wrap';
+    parent.style.display = 'flex';
+    parent.style.flexDirection = 'row';
+    parent.style.height = '100%';
+    main.style.width = '84%';
+    main.style.height = 'calc(100% - 68px)';
+    parent.prepend(main);
+    updateChildrenMeasurements(streamsDiv, '100%', 'auto', '100%', 'auto'); //if not change width wrapper to auto as well
+
+    secondary.style.position = '';
+    secondary.style.margin = '';
+    streamsDiv.append(secondary);
+  } else {
+    twoPeopleLayout(secondary, parent, streamsDiv);
   }
 }
 
@@ -460,10 +463,10 @@ function regularLayout(parent: HTMLDivElement, streamsDiv: HTMLDivElement) {
     streamsDiv.append(me);
 
     me.style.height = '100%';
-    me.style.position = 'inherit';
-    me.style.bottom = '0';
-    me.style.right = '0';
-    me.style.margin = '0';
+    me.style.position = '';
+    me.style.bottom = '';
+    me.style.right = '';
+    me.style.margin = '';
     myVideo.style.height = '';
     myVideo.style.width = '';
     return;
@@ -509,29 +512,39 @@ function regularLayout(parent: HTMLDivElement, streamsDiv: HTMLDivElement) {
 }
 
 function twoPeopleLayout(
-  screenCaptureDiv: HTMLDivElement,
+  secondary: HTMLDivElement,
   parent: HTMLDivElement,
-  streamsDiv: HTMLDivElement
+  videosDiv: HTMLDivElement
 ) {
-  screenCaptureDiv.style.objectFit = 'cover';
-  screenCaptureDiv.style.position = 'fixed';
-  screenCaptureDiv.style.width = '';
-  screenCaptureDiv.style.bottom = '0';
-  screenCaptureDiv.style.right = '0';
-  screenCaptureDiv.style.height = '20%';
-  screenCaptureDiv.style.margin = '12px';
-  const screenCapture = screenCaptureDiv.firstChild as HTMLVideoElement;
-  if (screenCapture) {
-    screenCapture.style.width = '';
-    screenCapture.style.height = '';
+  secondary.style.objectFit = 'cover';
+  secondary.style.position = 'fixed';
+  secondary.style.zIndex = '1';
+  secondary.style.width = '';
+  secondary.style.bottom = '0';
+  secondary.style.right = '0';
+  secondary.style.height = '20%';
+  secondary.style.margin = '12px';
+  const video = secondary.firstChild as HTMLVideoElement;
+  if (video) {
+    video.style.width = '';
+    video.style.height = '';
   }
 
-  streamsDiv.style.width = '100%';
-
-  parent.style.height = '100%';
-  parent.prepend(screenCaptureDiv);
-
-  updateChildrenMeasurements(streamsDiv, '100%', '100%', 'auto', '100%');
+  const otherUser = Array.from(videosDiv.children).find(
+    (el) => el.id !== myUserId
+  ) as HTMLDivElement;
+  if (otherUser) {
+    const otherUserVideo = otherUser?.lastChild as HTMLVideoElement;
+    otherUser.style.width = '100%';
+    otherUser.style.height = '100%';
+    otherUserVideo.style.width = '';
+    otherUserVideo.style.height = '';
+    videosDiv.style.width = '100%';
+  } else {
+    const mainVideo = parent.firstChild as HTMLDivElement;
+    mainVideo.style.width = '100%';
+    videosDiv.style.width = '';
+  }
 }
 
 function updateChildrenMeasurements(
