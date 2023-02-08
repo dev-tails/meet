@@ -13,7 +13,7 @@ const socket = io();
 
 const styles = {
   objectFit: 'cover',
-  borderRadius: '16px',
+  borderRadius: '4px',
 };
 
 const buttonStyles = {
@@ -92,22 +92,15 @@ export function Videocall() {
       call.answer(myStream); /* Stream them our video/audio */
 
       const video = videoWrap(call.peer);
-      // console.log('call metadata', call.metadata);
       /* When we receive their stream */
       call.on('stream', (userVideoStream) => {
         addVideoStream(video, userVideoStream);
-        if (call.metadata) {
-          userIdScreensharing = call.metadata;
-        }
+        userIdScreensharing = call.metadata;
         adjustLayout(userIdScreensharing);
       });
     });
 
     socket.on('user-connected', (userId) => {
-      console.log(
-        'call new user and tell this is sharing',
-        userIdScreensharing
-      );
       connectToNewUser(userId, myStream);
     });
 
@@ -281,7 +274,6 @@ export function Videocall() {
       shareScreenButton.style.color = isScreensharing ? '#808080' : '#fff';
 
       isScreensharing = isScreensharing ? false : true;
-      userIdScreensharing = myUserId;
     }
 
     async function onSharecaptureClick() {
@@ -297,14 +289,20 @@ export function Videocall() {
     }
 
     function adjustLayout(userScreensharing?: string) {
+      const userScreensharingExists =
+        view.firstElementChild?.id === userIdScreensharing ||
+        Array.from(el.children).find((elem) => elem.id === userIdScreensharing);
+      if (!userScreensharingExists) {
+        userIdScreensharing = '';
+        regularLayout(view, el);
+        return;
+      }
+
+      const myUserIsScreensharing = userScreensharing === userIdScreensharing;
       const screencaptureEl =
         userScreensharing && (byId(userScreensharing) as HTMLDivElement);
-      console.log(
-        'adjusting layout: ',
-        userScreensharing,
-        screencaptureEl && !isScreensharing ? 'screenshare' : 'regular'
-      );
-      screencaptureEl
+
+      screencaptureEl && !myUserIsScreensharing
         ? screenshareLayout(screencaptureEl, view, el)
         : regularLayout(view, el);
     }
@@ -574,8 +572,6 @@ function getColumns(element: HTMLDivElement) {
   let col = 0;
   if (element.childElementCount === 1) {
     col = 1;
-    // } else if (element.childElementCount === 3 && window.innerWidth > 1200) {
-    //   col = 3;
   } else if (element.childElementCount > 1 && element.childElementCount <= 4) {
     col = 2;
   } else if (element.childElementCount > 4 && element.childElementCount <= 9) {

@@ -24,7 +24,7 @@ io.on('connection', (socket) => {
 
     socket.broadcast.to(roomId).emit('user-connected', userId);
     socket.on('change-layout', (userId) => {
-      socket.broadcast.to(roomId).emit('change-layout', userId);
+      io.in(roomId).emit('change-layout', userId);
     });
     socket.on('disconnect', () => {
       socket.broadcast.to(roomId).emit('user-disconnected', userId);
