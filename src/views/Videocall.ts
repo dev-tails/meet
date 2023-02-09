@@ -59,6 +59,8 @@ export function Videocall() {
     myVideo.id = myUserId;
   });
 
+  myPeer.on('error', (err) => console.error('Error: ', err));
+
   const view = Div({
     styles: { height: '100%', backgroundColor: '#656565' },
   });
