@@ -13,5 +13,8 @@ export function Video(params?: {
     el.muted = params.muted;
   }
 
+  el.autoplay = true;
+  el.playsInline = true;
+
   return el as HTMLVideoElement;
 }

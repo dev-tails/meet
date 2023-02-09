@@ -205,7 +205,6 @@ export function Videocall() {
       video.srcObject = stream;
       video.addEventListener('loadedmetadata', () => {
         video.play();
-        console.log('playing', div, div.id, video.played);
       });
       el.appendChild(div);
     }
@@ -235,10 +234,8 @@ export function Videocall() {
 
     async function replaceStreamForNewUser(newUser: string) {
       if (userIdScreensharing === myUserId) {
-        console.log('i am the one screen sharing');
         if (!localScreenStream) {
           localScreenStream = (await getLocalScreenStream()) as MediaStream;
-          console.log('local ', localScreenStream);
         }
         const [screenTrack] = localScreenStream.getVideoTracks();
         const newPeer = peers.find((peer) => peer.userId.peer === newUser);
@@ -247,8 +244,6 @@ export function Videocall() {
         const rtpSender = peerConnection
           .getSenders()
           .find((sender) => sender.track.kind === screenTrack.kind);
-        console.log('rtp sender', rtpSender);
-        console.log('st', screenTrack);
         rtpSender.replaceTrack(screenTrack);
       }
     }
@@ -301,7 +296,6 @@ export function Videocall() {
     }
 
     function adjustLayout(userScreensharing?: string) {
-      console.log('user screensharer in adjust:', userIdScreensharing);
       const userScreensharingExists =
         view.firstElementChild?.id === userIdScreensharing ||
         Array.from(el.children).find((elem) => elem.id === userIdScreensharing);
@@ -311,7 +305,7 @@ export function Videocall() {
         return;
       }
 
-      const myUserIsScreensharing = userScreensharing === userIdScreensharing;
+      const myUserIsScreensharing = userScreensharing === myUserId;
       const screencaptureEl =
         userScreensharing && (byId(userScreensharing) as HTMLDivElement);
 
