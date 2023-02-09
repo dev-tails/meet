@@ -101,6 +101,10 @@ export function Videocall() {
     });
 
     socket.on('user-connected', (userId) => {
+      console.log(
+        'someone joined and this is screen sharing:',
+        userIdScreensharing
+      );
       connectToNewUser(userId, myStream);
     });
 
@@ -199,7 +203,10 @@ export function Videocall() {
     function addVideoStream(div: HTMLDivElement, stream: MediaStream) {
       const video = div.firstChild as HTMLVideoElement;
       video.srcObject = stream;
-      video.addEventListener('loadedmetadata', () => video.play());
+      video.addEventListener('loadedmetadata', () => {
+        video.play();
+        console.log('playing', div, div.id, video.played);
+      });
       el.appendChild(div);
     }
 
@@ -226,8 +233,13 @@ export function Videocall() {
       peers.push({ userId: call });
     }
 
-    function replaceStreamForNewUser(newUser: string) {
-      if (userIdScreensharing === myUserId && localScreenStream) {
+    async function replaceStreamForNewUser(newUser: string) {
+      if (userIdScreensharing === myUserId) {
+        console.log('i am the one screen sharing');
+        if (!localScreenStream) {
+          localScreenStream = (await getLocalScreenStream()) as MediaStream;
+          console.log('local ', localScreenStream);
+        }
         const [screenTrack] = localScreenStream.getVideoTracks();
         const newPeer = peers.find((peer) => peer.userId.peer === newUser);
         const { peerConnection } = newPeer.userId;
@@ -235,6 +247,8 @@ export function Videocall() {
         const rtpSender = peerConnection
           .getSenders()
           .find((sender) => sender.track.kind === screenTrack.kind);
+        console.log('rtp sender', rtpSender);
+        console.log('st', screenTrack);
         rtpSender.replaceTrack(screenTrack);
       }
     }
@@ -254,7 +268,7 @@ export function Videocall() {
           .getSenders()
           .find((sender) => sender.track.kind === screenTrack.kind);
         rtpSender.replaceTrack(screenTrack);
-        socket.emit('change-layout', isScreensharing ? myUserId : '');
+        socket.emit('change-layout', isScreensharing ? '' : myUserId);
       });
 
       const videoDiv = byId(myUserId);
@@ -287,6 +301,7 @@ export function Videocall() {
     }
 
     function adjustLayout(userScreensharing?: string) {
+      console.log('user screensharer in adjust:', userIdScreensharing);
       const userScreensharingExists =
         view.firstElementChild?.id === userIdScreensharing ||
         Array.from(el.children).find((elem) => elem.id === userIdScreensharing);
@@ -321,10 +336,7 @@ export function Videocall() {
 
 async function getLocalUserMedia() {
   try {
-    const stream = await getUserMedia({
-      video: true,
-      audio: true,
-    });
+    const stream = await getUserMedia({ video: true, audio: true });
     return stream;
   } catch (error) {
     console.error('Failed to access local user media', error);
