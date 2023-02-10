@@ -17,6 +17,7 @@ const styles = {
 };
 
 const buttonStyles = {
+  position: 'relative',
   height: '40px',
   width: '40px',
   backgroundColor: '#fff',
@@ -24,6 +25,7 @@ const buttonStyles = {
   fontSize: '18px',
   color: '#808080',
   cursor: 'pointer',
+  zIndex: '1',
   // boxShadow: '0px 2px 6px 1px rgba(0, 0, 0, 0.2)',
 };
 
@@ -49,7 +51,9 @@ let userIdScreensharing = '';
 export function Videocall() {
   const roomId = window.location.pathname.split('/')[1];
   const myPeer = new Peer();
+  let exitCallButtonHovered = false;
   let muteButtonHovered = false;
+  let shareScreenButtonHovered = false;
 
   const myVideo = videoWrap('', true, { transform: 'rotateY(180deg)' });
 
@@ -59,10 +63,8 @@ export function Videocall() {
     myVideo.id = myUserId;
   });
 
-  myPeer.on('error', (err) => console.error('Error: ', err));
-
   const view = Div({
-    styles: { height: '100%', backgroundColor: '#656565' },
+    styles: { height: '100%', backgroundColor: '#3c3e53' },
   });
   const el = Div({
     id: 'videos',
@@ -137,18 +139,19 @@ export function Videocall() {
       },
     });
 
+    const exitCalltTooltip = actionButtonsTooltip('End call');
     const exitCallButton = Button({
       class: 'action-buttons',
       innerHTML: phoneIcon,
       styles: {
         width: '60px',
         borderRadius: '20px',
-        right: '20px',
         fontSize: '20px',
         cursor: 'pointer',
         backgroundColor: '#d73030',
         color: '#fff',
-        marginLeft: '12px',
+        position: 'relative',
+        zIndex: '1',
       },
       onClick: () => {
         socket.close();
@@ -156,32 +159,31 @@ export function Videocall() {
         removeVideocallListeners();
         setURL('/');
       },
-    });
-
-    const rotatedIcon = exitCallButton.firstChild as SVGAElement;
-    rotatedIcon.style.transform = 'rotate(137deg)';
-
-    const muteTextTooltip = Div({
-      innerText: `Mute/Unmute (${isMac ? '⌘' : 'Ctrl'} + d)`,
-      styles: {
-        background: '#3f4651',
-        color: '#fff',
-        width: 'max-content',
-        padding: '4px 12px',
-        borderRadius: '4px',
-        fontSize: '14px',
-        position: 'absolute',
-        transform: ' translate(-45%, -60px)',
-        opacity: '0',
-        transition: 'opacity 1s',
+      onMouseEnter: () => {
+        exitCallButtonHovered = true;
+        setStyle(exitCalltTooltip, { opacity: '1' });
+        exitCallButton.append(exitCalltTooltip);
+      },
+      onMouseLeave: () => {
+        exitCallButtonHovered = false;
+        setTimeout(() => setStyle(exitCalltTooltip, { opacity: '0' }), 200);
       },
     });
+    const exitCallSVG = exitCallButton.firstElementChild as HTMLElement;
+    setStyle(exitCallSVG, {
+      transform: 'rotate(137deg)',
+      position: 'relative',
+      zIndex: '-1',
+    });
 
+    const muteTextTooltip = actionButtonsTooltip(
+      `Mute/Unmute (${isMac ? '⌘' : 'Ctrl'} + d)`
+    );
     const muteButton = Button({
       id: 'mute-btn',
       class: 'action-buttons',
       innerHTML: microphoneIcon,
-      styles: { ...buttonStyles, marginLeft: '24px' },
+      styles: { ...buttonStyles, margin: '0 24px' },
       onClick: muteSelf,
       onMouseEnter: () => {
         muteButtonHovered = true;
@@ -190,23 +192,37 @@ export function Videocall() {
       },
       onMouseLeave: () => {
         muteButtonHovered = false;
-        !muteButtonHovered &&
-          setTimeout(() => setStyle(muteTextTooltip, { opacity: '0' }), 200);
+        setTimeout(() => setStyle(muteTextTooltip, { opacity: '0' }), 200);
       },
     });
+    const muteSVG = muteButton.firstElementChild as HTMLElement;
+    setStyle(muteSVG, { position: 'relative', zIndex: '-1' });
 
+    const shareScreenTooltip = actionButtonsTooltip('Start/Stop screenshare');
     const shareScreenButton = Button({
       class: 'action-buttons',
       innerHTML: desktopIcon,
       styles: buttonStyles,
       onClick: onSharecaptureClick,
+      onMouseEnter: () => {
+        shareScreenButtonHovered = true;
+        setStyle(shareScreenTooltip, { opacity: '1' });
+        shareScreenButton.append(shareScreenTooltip);
+      },
+      onMouseLeave: () => {
+        shareScreenButtonHovered = false;
+        setTimeout(() => setStyle(shareScreenTooltip, { opacity: '0' }), 200);
+      },
     });
+    const sharescreenSVG = shareScreenButton.firstElementChild as HTMLElement;
+    setStyle(sharescreenSVG, { position: 'relative', zIndex: '-1' });
 
     function addVideoStream(div: HTMLDivElement, stream: MediaStream) {
       const video = div.firstChild as HTMLVideoElement;
       video.srcObject = stream;
       video.addEventListener('loadedmetadata', () => {
         video.play();
+        console.log('playing', div, div.id, video.played);
       });
       el.appendChild(div);
     }
@@ -236,8 +252,10 @@ export function Videocall() {
 
     async function replaceStreamForNewUser(newUser: string) {
       if (userIdScreensharing === myUserId) {
+        console.log('i am the one screen sharing');
         if (!localScreenStream) {
           localScreenStream = (await getLocalScreenStream()) as MediaStream;
+          console.log('local ', localScreenStream);
         }
         const [screenTrack] = localScreenStream.getVideoTracks();
         const newPeer = peers.find((peer) => peer.userId.peer === newUser);
@@ -246,6 +264,8 @@ export function Videocall() {
         const rtpSender = peerConnection
           .getSenders()
           .find((sender) => sender.track.kind === screenTrack.kind);
+        console.log('rtp sender', rtpSender);
+        console.log('st', screenTrack);
         rtpSender.replaceTrack(screenTrack);
       }
     }
@@ -277,8 +297,8 @@ export function Videocall() {
       });
 
       setStyle(shareScreenButton, {
-        border: isScreensharing ? 'none' : '1px solid #6b3890',
-        backgroundColor: isScreensharing ? '#fff' : '#6b3890',
+        border: isScreensharing ? 'none' : '1px solid #5b67da',
+        backgroundColor: isScreensharing ? '#fff' : '#5b67da',
         color: isScreensharing ? '#808080' : '#fff',
       });
 
@@ -298,6 +318,7 @@ export function Videocall() {
     }
 
     function adjustLayout(userScreensharing?: string) {
+      console.log('user screensharer in adjust:', userIdScreensharing);
       const userScreensharingExists =
         view.firstElementChild?.id === userIdScreensharing ||
         Array.from(el.children).find((elem) => elem.id === userIdScreensharing);
@@ -307,7 +328,7 @@ export function Videocall() {
         return;
       }
 
-      const myUserIsScreensharing = userScreensharing === myUserId;
+      const myUserIsScreensharing = userScreensharing === userIdScreensharing;
       const screencaptureEl =
         userScreensharing && (byId(userScreensharing) as HTMLDivElement);
 
@@ -317,7 +338,6 @@ export function Videocall() {
     }
 
     buttons.append(shareScreenButton);
-    buttons.append(muteButton);
     buttons.append(muteButton);
     buttons.append(exitCallButton);
     view.append(el);
@@ -395,10 +415,14 @@ function muteSelf() {
   if (audioTracks.enabled) {
     muteButton.innerHTML = microphoneSlashIcon;
     setStyle(muteButton, { color: '#ee5447', border: '1px solid #ee5447' });
+    const muteSVG = muteButton.firstElementChild as HTMLElement;
+    setStyle(muteSVG, { position: 'relative', zIndex: '-1' });
     audioTracks.enabled = false;
   } else {
     muteButton.innerHTML = microphoneIcon;
     setStyle(muteButton, { color: '#808080', border: 'none' });
+    const muteSVG = muteButton.firstElementChild as HTMLElement;
+    setStyle(muteSVG, { position: 'relative', zIndex: '-1' });
     audioTracks.enabled = true;
   }
   isSelfMuted = !isSelfMuted;
@@ -557,7 +581,7 @@ function updateChildrenMeasurements(
 
 function mediaAccessBlocked() {
   const noUserMedia = Div({
-    innerText: 'Access to microphone and camera needed.',
+    innerHTML: 'Access to microphone and camera needed.',
   });
   return noUserMedia;
 }
@@ -584,4 +608,25 @@ function addVideocallListeners() {
 export function removeVideocallListeners() {
   document.removeEventListener('keydown', onMuteKeydownCmd);
   document.removeEventListener('keyup', onMuteKeyupCmd);
+}
+
+function actionButtonsTooltip(tooltipText: string) {
+  const isEndCallTooltip = tooltipText === 'End call';
+  return Div({
+    class: 'tooltip',
+    innerHTML: tooltipText,
+    styles: {
+      background: '#5b67da',
+      color: '#fff',
+      width: 'max-content',
+      padding: '8px 12px',
+      borderRadius: '4px',
+      fontSize: '14px',
+      position: 'absolute',
+      transform: `translate(${isEndCallTooltip ? '-15' : '-40'}%, -76px)`,
+      opacity: '0',
+      transition: 'opacity .5s',
+      fontFamily: 'Raleway, sans-serif',
+    },
+  });
 }

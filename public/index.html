@@ -32,9 +32,22 @@
       }
 
       .action-buttons:hover {
-        /* border: 1px solid #299da7; */
         box-shadow: 0 1px 2px 0 rgb(60 64 67 / 30%), 0 1px 3px 1px rgb(60 64 67 / 15%);
       }
+
+      .tooltip:after {
+        border-left: solid transparent 8px;
+        border-right: solid transparent 8px;
+        border-top: solid #5b67da 8px;
+        bottom: -8px;
+        content: " ";
+        height: 0;
+        left: 50%;
+        margin-left: -9px;
+        position: absolute;
+        width: 0;
+      }
+      
     </style>
   </head>
   <body id="root"></body>

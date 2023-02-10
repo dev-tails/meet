@@ -1,6 +1,7 @@
 import { Button, Div, Input } from '../ui/components/';
 import { setURL } from '../utils/HistoryUtils';
 import { copyIcon } from '../utils/FontAwesomeIcons';
+import { setStyle } from '../utils/DomUtils';
 
 const buttonLinks = {
   padding: '8px 12px',
@@ -15,15 +16,42 @@ const buttonLinks = {
 };
 
 export function Home() {
-  const el = Div({ styles: { margin: '40px' } });
+  const randomId = new Date().getTime();
+  const url = `${window.location}${randomId}`;
 
-  const container = Div();
-  const text = Div({
-    innerText: 'New meeting',
-    styles: { marginBottom: '20px', fontSize: '16px' },
+  const el = Div();
+
+  const blob = Div({
+    styles: {
+      background: '#5b67da', // #94d5d4',
+      width: '100%',
+      height: '20%',
+      borderRadius: '0 0 100% 100%',
+    },
+  });
+  el.append(blob);
+
+  const container = Div({
+    styles: {
+      margin: '40px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+    },
   });
 
+  const title = Div({
+    innerHTML: 'You make the <b>plans</b>, we <b>bridge</b> the gap.',
+    styles: { marginBottom: '32px', fontSize: '28px', fontWeight: '100' },
+  });
+  container.append(title);
+
+  const text = Div({
+    innerHTML: 'Use this link or modify the url end to something fun!',
+    styles: { marginBottom: '20px' },
+  });
   container.append(text);
+
   const input = Input({
     styles: {
       width: '500px',
@@ -37,13 +65,14 @@ export function Home() {
       outline: 'none',
       boxShadow: '0px 2px 6px 1px rgba(0, 0, 0, 0.1)',
     },
+    value: url,
   });
+  container.append(input);
 
-  const links = Div({ styles: { marginTop: '20px' } });
-  let randomId = new Date().getTime();
+  const links = Div({ styles: { marginTop: '28px' } });
 
   const startMeeting = Button({
-    innerHTML: 'Start meeting now',
+    innerHTML: 'Start meeting',
     styles: {
       ...buttonLinks,
       marginRight: '20px',
@@ -53,14 +82,16 @@ export function Home() {
     onClick: () => {
       setURL(input.value);
     },
+    onMouseEnter: () => setStyle(startMeeting, { opacity: '.9' }),
+    onMouseLeave: () => setStyle(startMeeting, { opacity: '1' }),
   });
 
   const copied = Div({
-    innerText: 'Copied link to clipboard.',
+    innerHTML: 'Copied link to clipboard.',
     styles: {
-      position: 'fixed',
-      top: '24px',
-      left: '50%',
+      position: 'absolute',
+      top: '-80px',
+      right: '-260px',
       border: '1px solid #636363',
       backgroundColor: '#636363',
       color: '#fff',
@@ -84,24 +115,15 @@ export function Home() {
         copied.style.opacity = '0';
       }, 1000);
     },
-    styles: buttonLinks,
+    onMouseEnter: () => setStyle(copyLink, { color: '#7d9ad9' }),
+    onMouseLeave: () => setStyle(copyLink, { color: '#7d9ad9' }),
+    styles: { ...buttonLinks, position: 'relative' },
   });
 
   links.append(startMeeting);
   links.append(copyLink);
 
-  const getIdBtn = Button({
-    innerHTML: 'Create',
-    onClick: () => {
-      container.append(input);
-      input.value = `${window.location}${randomId}`;
-      container.append(links);
-      getIdBtn.remove();
-    },
-    styles: { ...buttonLinks, backgroundColor: '#3760bb', color: '#fff' },
-  });
-
-  container.append(getIdBtn);
+  container.append(links);
   el.append(container);
 
   return el;

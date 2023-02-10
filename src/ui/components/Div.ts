@@ -2,16 +2,17 @@ import { setElementStyles } from './Element';
 
 export function Div(params?: {
   id?: string;
+  class?: string;
   styles?: Partial<CSSStyleDeclaration>;
-  innerText?: string;
+  innerHTML?: string;
   onClick?: () => void;
 }) {
   const el = document.createElement('div');
 
   setElementStyles(el, params?.styles);
 
-  if (params?.innerText) {
-    el.innerText = params.innerText;
+  if (params?.innerHTML) {
+    el.innerHTML = params.innerHTML;
   }
 
   if (params?.onClick) {
@@ -22,6 +23,10 @@ export function Div(params?: {
 
   if (params?.id) {
     el.id = params.id;
+  }
+
+  if (params?.class) {
+    el.className = params.class;
   }
 
   return el;
