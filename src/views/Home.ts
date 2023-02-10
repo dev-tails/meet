@@ -55,7 +55,7 @@ export function Home() {
   const inputContainer = Div({ styles: { width: '100%', maxWidth: '500px' } });
   const text = Div({
     innerHTML:
-      'Use this unique id or type something fun to use as your url path.',
+      'Use this unique id or type something fun to use as your url path:',
     styles: { marginBottom: '8px' },
   });
   inputContainer.append(text);
@@ -129,7 +129,7 @@ export function Home() {
       }, 1500);
     },
     onMouseEnter: () => setStyle(copyLink, { color: '#7d9ad9' }),
-    onMouseLeave: () => setStyle(copyLink, { color: '#7d9ad9' }),
+    onMouseLeave: () => setStyle(copyLink, { color: '#3760bb' }),
     styles: { ...buttonLinks, position: 'relative' },
   });
 
