@@ -650,8 +650,8 @@ function buttonAndTooltip(
       fontSize: '14px',
       position: 'absolute',
       transform: `translate(${
-        id === 'mute' ? '-25' : id === 'end' ? '-15' : '-35'
-      }%, -88px)`,
+        id === 'mute' ? '-26' : id === 'end' ? '-12' : '-34'
+      }%, -52px)`,
       opacity: '0',
       transition: 'opacity .5s',
       fontFamily: 'Raleway, sans-serif',
