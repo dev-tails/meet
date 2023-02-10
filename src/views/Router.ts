@@ -5,7 +5,8 @@ import { removeVideocallListeners, Videocall } from './Videocall';
 export function Router() {
   const router = Div({
     styles: {
-      height: '100%',
+      height: '100vh',
+      width: '100vw',
     },
   });
 

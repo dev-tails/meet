@@ -17,6 +17,9 @@ const styles = {
 };
 
 const buttonStyles = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
   height: '40px',
   width: '40px',
   backgroundColor: '#fff',
@@ -60,7 +63,13 @@ export function Videocall() {
   });
 
   const view = Div({
-    styles: { height: '100%', backgroundColor: '#3c3e53' },
+    styles: {
+      position: 'relative',
+      height: '100vh',
+      width: '100vw',
+      overflow: 'hidden',
+      backgroundColor: '#3c3e53',
+    },
   });
   const el = Div({
     id: 'videos',
@@ -126,12 +135,14 @@ export function Videocall() {
     });
 
     const buttons = Div({
+      class: 'buttons-container',
       styles: {
+        height: '56px',
         width: '100%',
         display: 'flex',
-        position: 'fixed',
-        bottom: '20px',
         justifyContent: 'center',
+        position: 'fixed',
+        bottom: '12px',
       },
     });
 
@@ -184,7 +195,7 @@ export function Videocall() {
       innerHTML: phoneIcon,
       styles: {
         width: '60px',
-        height: '100%',
+        height: '40px',
         borderRadius: '20px',
         fontSize: '20px',
         cursor: 'pointer',
@@ -623,7 +634,9 @@ function buttonAndTooltip(
   tooltipText: string,
   element: any
 ) {
-  const wrapper = Div({ styles: { position: 'relative' } });
+  const wrapper = Div({
+    styles: { position: 'relative', display: 'flex', alignItems: 'center' },
+  });
   const tooltip = Div({
     id: `${id}-tooltip`,
     class: 'tooltip',

@@ -19,11 +19,11 @@ export function Home() {
   const randomId = new Date().getTime();
   const url = `${window.location}${randomId}`;
 
-  const el = Div();
+  const el = Div({ styles: { display: 'contents' } });
 
   const blob = Div({
     styles: {
-      background: '#5b67da', // #94d5d4',
+      background: '#5b67da',
       width: '100%',
       height: '20%',
       borderRadius: '0 0 100% 100%',
