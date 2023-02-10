@@ -6,6 +6,8 @@ export function Div(params?: {
   styles?: Partial<CSSStyleDeclaration>;
   innerHTML?: string;
   onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }) {
   const el = document.createElement('div');
 
@@ -19,6 +21,13 @@ export function Div(params?: {
     el.addEventListener('click', () => {
       params.onClick();
     });
+  }
+
+  if (params?.onMouseEnter) {
+    el.addEventListener('mouseenter', params.onMouseEnter, true);
+  }
+  if (params?.onMouseLeave) {
+    el.addEventListener('mouseleave', params.onMouseLeave, true);
   }
 
   if (params?.id) {

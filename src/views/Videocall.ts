@@ -17,7 +17,6 @@ const styles = {
 };
 
 const buttonStyles = {
-  position: 'relative',
   height: '40px',
   width: '40px',
   backgroundColor: '#fff',
@@ -25,7 +24,7 @@ const buttonStyles = {
   fontSize: '18px',
   color: '#808080',
   cursor: 'pointer',
-  zIndex: '1',
+  outline: 'none',
   // boxShadow: '0px 2px 6px 1px rgba(0, 0, 0, 0.2)',
 };
 
@@ -51,9 +50,6 @@ let userIdScreensharing = '';
 export function Videocall() {
   const roomId = window.location.pathname.split('/')[1];
   const myPeer = new Peer();
-  let exitCallButtonHovered = false;
-  let muteButtonHovered = false;
-  let shareScreenButtonHovered = false;
 
   const myVideo = videoWrap('', true, { transform: 'rotateY(180deg)' });
 
@@ -139,46 +135,26 @@ export function Videocall() {
       },
     });
 
-    const exitCalltTooltip = actionButtonsTooltip('End call');
-    const exitCallButton = Button({
+    const shareScreenButton = Button({
       class: 'action-buttons',
-      innerHTML: phoneIcon,
-      styles: {
-        width: '60px',
-        borderRadius: '20px',
-        fontSize: '20px',
-        cursor: 'pointer',
-        backgroundColor: '#d73030',
-        color: '#fff',
-        position: 'relative',
-        zIndex: '1',
-      },
-      onClick: () => {
-        socket.close();
-        myStream.getTracks().forEach((track) => track.stop());
-        removeVideocallListeners();
-        setURL('/');
-      },
-      onMouseEnter: () => {
-        exitCallButtonHovered = true;
-        setStyle(exitCalltTooltip, { opacity: '1' });
-        exitCallButton.append(exitCalltTooltip);
-      },
-      onMouseLeave: () => {
-        exitCallButtonHovered = false;
-        setTimeout(() => setStyle(exitCalltTooltip, { opacity: '0' }), 200);
-      },
+      innerHTML: desktopIcon,
+      styles: buttonStyles,
+      onClick: onSharecaptureClick,
+      onMouseEnter: () =>
+        setStyle(byId('share-tooltip') as HTMLDivElement, { opacity: '1' }),
+      onMouseLeave: () =>
+        setTimeout(
+          () =>
+            setStyle(byId('share-tooltip') as HTMLDivElement, { opacity: '0' }),
+          200
+        ),
     });
-    const exitCallSVG = exitCallButton.firstElementChild as HTMLElement;
-    setStyle(exitCallSVG, {
-      transform: 'rotate(137deg)',
-      position: 'relative',
-      zIndex: '-1',
-    });
-
-    const muteTextTooltip = actionButtonsTooltip(
-      `Mute/Unmute (${isMac ? '⌘' : 'Ctrl'} + d)`
+    const shareScreenEl = buttonAndTooltip(
+      'share',
+      'Start screenshare',
+      shareScreenButton
     );
+
     const muteButton = Button({
       id: 'mute-btn',
       class: 'action-buttons',
@@ -186,43 +162,63 @@ export function Videocall() {
       styles: { ...buttonStyles, margin: '0 24px' },
       onClick: muteSelf,
       onMouseEnter: () => {
-        muteButtonHovered = true;
-        setStyle(muteTextTooltip, { opacity: '1' });
-        muteButton.append(muteTextTooltip);
+        setStyle(byId('mute-tooltip') as HTMLDivElement, { opacity: '1' });
       },
       onMouseLeave: () => {
-        muteButtonHovered = false;
-        setTimeout(() => setStyle(muteTextTooltip, { opacity: '0' }), 200);
+        setTimeout(
+          () =>
+            setStyle(byId('mute-tooltip') as HTMLDivElement, { opacity: '0' }),
+          200
+        );
       },
     });
-    const muteSVG = muteButton.firstElementChild as HTMLElement;
-    setStyle(muteSVG, { position: 'relative', zIndex: '-1' });
 
-    const shareScreenTooltip = actionButtonsTooltip('Start/Stop screenshare');
-    const shareScreenButton = Button({
+    const muteEl = buttonAndTooltip(
+      'mute',
+      `Mute microphone (${isMac ? '⌘' : 'Ctrl'} + d)`,
+      muteButton
+    );
+
+    const exitCallButton = Button({
       class: 'action-buttons',
-      innerHTML: desktopIcon,
-      styles: buttonStyles,
-      onClick: onSharecaptureClick,
+      innerHTML: phoneIcon,
+      styles: {
+        width: '60px',
+        height: '100%',
+        borderRadius: '20px',
+        fontSize: '20px',
+        cursor: 'pointer',
+        backgroundColor: '#d73030',
+        color: '#fff',
+        border: 'none',
+      },
+      onClick: async () => {
+        socket.close();
+        myStream.getTracks().forEach((track) => track.stop());
+        removeVideocallListeners();
+        setURL('/');
+      },
       onMouseEnter: () => {
-        shareScreenButtonHovered = true;
-        setStyle(shareScreenTooltip, { opacity: '1' });
-        shareScreenButton.append(shareScreenTooltip);
+        setStyle(byId('end-tooltip') as HTMLDivElement, { opacity: '1' });
       },
       onMouseLeave: () => {
-        shareScreenButtonHovered = false;
-        setTimeout(() => setStyle(shareScreenTooltip, { opacity: '0' }), 200);
+        setTimeout(
+          () =>
+            setStyle(byId('end-tooltip') as HTMLDivElement, { opacity: '0' }),
+          200
+        );
       },
     });
-    const sharescreenSVG = shareScreenButton.firstElementChild as HTMLElement;
-    setStyle(sharescreenSVG, { position: 'relative', zIndex: '-1' });
+    const exitCallEl = buttonAndTooltip('end', 'End call', exitCallButton);
+
+    const exitCallSVG = exitCallButton.firstElementChild as HTMLElement;
+    setStyle(exitCallSVG, { transform: 'rotate(137deg)' });
 
     function addVideoStream(div: HTMLDivElement, stream: MediaStream) {
       const video = div.firstChild as HTMLVideoElement;
       video.srcObject = stream;
       video.addEventListener('loadedmetadata', () => {
         video.play();
-        console.log('playing', div, div.id, video.played);
       });
       el.appendChild(div);
     }
@@ -301,8 +297,12 @@ export function Videocall() {
         backgroundColor: isScreensharing ? '#fff' : '#5b67da',
         color: isScreensharing ? '#808080' : '#fff',
       });
-
       isScreensharing = isScreensharing ? false : true;
+      const shareScreenTooltip = byId('share-tooltip') as HTMLDivElement;
+      shareScreenTooltip &&
+        (shareScreenTooltip.innerHTML = `${
+          isScreensharing ? 'Stop' : 'Start'
+        } screensharing`);
     }
 
     async function onSharecaptureClick() {
@@ -337,9 +337,9 @@ export function Videocall() {
         : regularLayout(view, el);
     }
 
-    buttons.append(shareScreenButton);
-    buttons.append(muteButton);
-    buttons.append(exitCallButton);
+    buttons.append(shareScreenEl);
+    buttons.append(muteEl);
+    buttons.append(exitCallEl);
     view.append(el);
     view.append(buttons);
 
@@ -411,19 +411,27 @@ function onMuteKeyupCmd(event) {
 function muteSelf() {
   const muteButton = byId('mute-btn') as HTMLButtonElement;
   const audioTracks = myStream.getAudioTracks()[0];
+  const tooltip = `${audioTracks.enabled ? 'Unmute' : 'Mute'} microphone (${
+    isMac ? '⌘' : 'Ctrl'
+  } + d)`;
+  const muteTooltip = byId('mute-tooltip');
 
   if (audioTracks.enabled) {
     muteButton.innerHTML = microphoneSlashIcon;
     setStyle(muteButton, { color: '#ee5447', border: '1px solid #ee5447' });
-    const muteSVG = muteButton.firstElementChild as HTMLElement;
-    setStyle(muteSVG, { position: 'relative', zIndex: '-1' });
     audioTracks.enabled = false;
   } else {
     muteButton.innerHTML = microphoneIcon;
     setStyle(muteButton, { color: '#808080', border: 'none' });
-    const muteSVG = muteButton.firstElementChild as HTMLElement;
-    setStyle(muteSVG, { position: 'relative', zIndex: '-1' });
     audioTracks.enabled = true;
+  }
+
+  if (muteTooltip) {
+    muteTooltip.innerHTML = tooltip;
+    const elementSVG = muteButton.firstElementChild as HTMLElement;
+    setStyle(elementSVG, { pointerEvents: 'none' });
+    setStyle(muteTooltip, { opacity: '1' });
+    setTimeout(() => setStyle(muteTooltip, { opacity: '0' }), 600);
   }
   isSelfMuted = !isSelfMuted;
 }
@@ -610,9 +618,14 @@ export function removeVideocallListeners() {
   document.removeEventListener('keyup', onMuteKeyupCmd);
 }
 
-function actionButtonsTooltip(tooltipText: string) {
-  const isEndCallTooltip = tooltipText === 'End call';
-  return Div({
+function buttonAndTooltip(
+  id: 'share' | 'mute' | 'end',
+  tooltipText: string,
+  element: any
+) {
+  const wrapper = Div({ styles: { position: 'relative' } });
+  const tooltip = Div({
+    id: `${id}-tooltip`,
     class: 'tooltip',
     innerHTML: tooltipText,
     styles: {
@@ -623,10 +636,19 @@ function actionButtonsTooltip(tooltipText: string) {
       borderRadius: '4px',
       fontSize: '14px',
       position: 'absolute',
-      transform: `translate(${isEndCallTooltip ? '-15' : '-40'}%, -76px)`,
+      transform: `translate(${
+        id === 'mute' ? '-25' : id === 'end' ? '-15' : '-35'
+      }%, -88px)`,
       opacity: '0',
       transition: 'opacity .5s',
       fontFamily: 'Raleway, sans-serif',
+      outline: 'none',
     },
   });
+
+  wrapper.append(element);
+  const elementSVG = element.firstElementChild as HTMLElement;
+  setStyle(elementSVG, { pointerEvents: 'none' });
+  wrapper.append(tooltip);
+  return wrapper;
 }

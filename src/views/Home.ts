@@ -42,19 +42,27 @@ export function Home() {
 
   const title = Div({
     innerHTML: 'You make the <b>plans</b>, we <b>bridge</b> the gap.',
-    styles: { marginBottom: '32px', fontSize: '28px', fontWeight: '100' },
+    styles: { marginBottom: '8px', fontSize: '28px', fontWeight: '100' },
   });
   container.append(title);
 
-  const text = Div({
-    innerHTML: 'Use this link or modify the url end to something fun!',
-    styles: { marginBottom: '20px' },
+  const descriptionText = Div({
+    innerHTML: 'Video conferencing made easy and free, no more time limits.',
+    styles: { marginBottom: '48px' },
   });
-  container.append(text);
+  container.append(descriptionText);
+
+  const inputContainer = Div({ styles: { width: '100%', maxWidth: '500px' } });
+  const text = Div({
+    innerHTML:
+      'Use this unique id or type something fun to use as your url path.',
+    styles: { marginBottom: '8px' },
+  });
+  inputContainer.append(text);
 
   const input = Input({
     styles: {
-      width: '500px',
+      width: '100%',
       height: '40px',
       padding: '8px',
       fontSize: '14px',
@@ -65,9 +73,12 @@ export function Home() {
       outline: 'none',
       boxShadow: '0px 2px 6px 1px rgba(0, 0, 0, 0.1)',
     },
-    value: url,
+    onfocus: () => (input.placeholder = input.value || ''),
+    onfocusout: () => (input.placeholder = input.value || url),
+    placeholder: url,
   });
-  container.append(input);
+  inputContainer.append(input);
+  container.append(inputContainer);
 
   const links = Div({ styles: { marginTop: '28px' } });
 
@@ -80,7 +91,9 @@ export function Home() {
       color: '#fff',
     },
     onClick: () => {
-      setURL(input.value);
+      setURL(
+        input.value ? `${window.location}${input.value}` : input.placeholder
+      );
     },
     onMouseEnter: () => setStyle(startMeeting, { opacity: '.9' }),
     onMouseLeave: () => setStyle(startMeeting, { opacity: '1' }),
@@ -108,12 +121,12 @@ export function Home() {
       input.select();
       input.setSelectionRange(0, 99999);
 
-      navigator.clipboard.writeText(input.value);
+      navigator.clipboard.writeText(`${window.location}${input.value}`);
       copied.style.opacity = '1';
       copyLink.append(copied);
       setTimeout(() => {
         copied.style.opacity = '0';
-      }, 1000);
+      }, 1500);
     },
     onMouseEnter: () => setStyle(copyLink, { color: '#7d9ad9' }),
     onMouseLeave: () => setStyle(copyLink, { color: '#7d9ad9' }),

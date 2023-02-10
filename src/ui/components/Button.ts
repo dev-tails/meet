@@ -7,8 +7,8 @@ type ButtonProps = {
   innerHTML?: string;
   styles?: Partial<CSSStyleDeclaration>;
   onClick?: () => void;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
+  onMouseEnter?: (e?: any) => void;
+  onMouseLeave?: (e?: any) => void;
 };
 
 export function Button(props?: ButtonProps) {
