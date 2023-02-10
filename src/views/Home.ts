@@ -73,8 +73,6 @@ export function Home() {
       outline: 'none',
       boxShadow: '0px 2px 6px 1px rgba(0, 0, 0, 0.1)',
     },
-    onfocus: () => (input.placeholder = input.value || ''),
-    onfocusout: () => (input.placeholder = input.value || url),
     placeholder: url,
   });
   inputContainer.append(input);
