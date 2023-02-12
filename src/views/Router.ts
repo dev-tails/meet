@@ -1,6 +1,7 @@
 import { Div } from '../ui/components/Div';
 import { Home } from './Home';
-import { removeVideocallListeners, Videocall } from './Videocall';
+import { removeVideocallListeners } from './Videocall/MuteShortcuts';
+import { Videocall } from './Videocall/Videocall';
 
 export function Router() {
   const router = Div({
