@@ -73,7 +73,6 @@ export function Videocall() {
     }
 
     addVideoStream(myVideo, myStream); /* Display our video to ourselves */
-    // myStream = stream;
 
     myPeer.on('call', (call) => {
       peers.push({ userId: call });
@@ -249,7 +248,7 @@ export function Videocall() {
         return;
       }
 
-      const myUserIsScreensharing = userScreensharing === userIdScreensharing;
+      const myUserIsScreensharing = userScreensharing === myUserId;
       const screencaptureEl =
         userScreensharing && (byId(userScreensharing) as HTMLDivElement);
 

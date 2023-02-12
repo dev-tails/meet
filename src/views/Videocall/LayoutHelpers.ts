@@ -46,6 +46,7 @@ export function screenshareLayout(
     setStyle(parent, { display: 'flex', flexDirection: 'row', height: '100%' });
     setStyle(main, { width: '84%', height: 'calc(100% - 68px)' });
     parent.prepend(main);
+    console.log('aqui?');
     updateChildrenMeasurements(streamsDiv, '100%', 'auto', '100%', 'auto'); //if not change width wrapper to auto as well
 
     setStyle(secondary, { position: '', margin: '' });
@@ -105,8 +106,8 @@ export function regularLayout(
   const videoWidth = window.innerWidth / columns;
   const rows = Math.ceil(streamsDiv.children.length / columns);
   const videoHeight = streamsDiv.offsetHeight / rows;
-  const widthStr = (videoWidth - 40).toString();
-  const heightStr = (videoHeight - 20).toString();
+  const widthStr = `${videoWidth - 40}px`;
+  const heightStr = `${(videoHeight - 20).toString()}px`;
 
   updateChildrenMeasurements(streamsDiv, widthStr, heightStr, 'auto', 'auto');
 }
@@ -161,7 +162,7 @@ export function updateChildrenMeasurements(
       width: wrapperWidth,
     });
     const videoEl = child.firstChild as HTMLVideoElement;
-    setStyle(videoEl, { width: `${width}px`, height: `${height}px` });
+    setStyle(videoEl, { width, height });
   });
 }
 

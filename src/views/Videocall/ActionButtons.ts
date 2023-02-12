@@ -41,6 +41,7 @@ export function ActionButtons(
 
   const shareScreenButton = Button({
     class: 'action-buttons',
+    id: 'share-button',
     innerHTML: desktopIcon,
     styles: buttonStyles,
     onClick: onSharecaptureClick,
@@ -120,7 +121,6 @@ function buttonAndTooltip(
   element: any
 ) {
   const wrapper = Div({
-    id: `${id}-button`,
     styles: { position: 'relative', display: 'flex', alignItems: 'center' },
   });
   const tooltip = Div({
