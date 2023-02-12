@@ -1,5 +1,5 @@
 import { io } from 'socket.io-client';
-import Peer from 'peerjs';
+import Peer, { MediaConnection } from 'peerjs';
 import { Div, Button, Video } from '../ui/components';
 import { byId, setStyle } from '../utils/DomUtils';
 import { setURL } from '../utils/HistoryUtils';
@@ -9,7 +9,9 @@ import {
   microphoneSlashIcon,
   phoneIcon,
 } from '../utils/FontAwesomeIcons';
-const socket = io();
+const socket = io({
+  autoConnect: true,
+});
 
 const styles = {
   objectFit: 'cover',
@@ -43,24 +45,16 @@ const isMac =
 
 const shortcutKey = isMac ? 'Meta' : 'Control';
 let keys = { meta: false, d: false };
-const peers: any = [];
 let myStream: any = null;
 let isSelfMuted = false;
 let isScreensharing = false;
-let myUserId = '';
 let userIdScreensharing = '';
 
 export function Videocall() {
   const roomId = window.location.pathname.split('/')[1];
   const myPeer = new Peer();
-
-  const myVideo = videoWrap('', true, { transform: 'rotateY(180deg)' });
-
-  myPeer.on('open', (id) => {
-    myUserId = id;
-    socket.emit('join-room', roomId, myUserId);
-    myVideo.id = myUserId;
-  });
+  const peers: { userId: MediaConnection }[] = [];
+  let myUserId = '';
 
   const view = Div({
     styles: {
@@ -71,22 +65,35 @@ export function Videocall() {
       backgroundColor: '#3c3e53',
     },
   });
-  const el = Div({
-    id: 'videos',
-    styles: {
-      height: 'calc(100% - 68px)',
-      padding: '8px',
-      display: 'flex',
-      gap: '12px',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-      alignContent: 'center',
-    },
-  });
 
   async function init() {
+    const myVideo = videoWrap('', true, { transform: 'rotateY(180deg)' });
+
+    const el = Div({
+      id: 'videos',
+      styles: {
+        height: 'calc(100% - 68px)',
+        padding: '8px',
+        display: 'flex',
+        gap: '12px',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        alignContent: 'center',
+      },
+    });
+
+    myPeer.on('open', (id) => {
+      myUserId = id;
+      if (socket.disconnected) {
+        socket.connect();
+      }
+      socket.emit('join-room', roomId, myUserId);
+      myVideo.id = myUserId;
+    });
+
     const stream = await getLocalUserMedia();
     let localScreenStream: MediaStream | undefined;
+    console.log('init', myPeer);
 
     if (!stream) {
       view.append(mediaAccessBlocked());
@@ -109,12 +116,23 @@ export function Videocall() {
       });
     });
 
+    myPeer.on('error', (err) => {
+      console.error('Error:', err);
+    });
+
     socket.on('user-connected', (userId) => {
       console.log(
         'someone joined and this is screen sharing:',
         userIdScreensharing
       );
       connectToNewUser(userId, myStream);
+    });
+
+    myPeer.on('disconnected', () => {
+      myPeer.destroy();
+      socket.close();
+      myStream.getTracks().forEach((track) => track.stop());
+      removeVideocallListeners();
     });
 
     socket.on('change-layout', (userSharing) => {
@@ -126,6 +144,7 @@ export function Videocall() {
       const userToDisconnect = peers.find(
         (peer) => peer.userId?.peer === userId
       );
+      if (!userToDisconnect) return;
       const index = peers.findIndex((peer) => peer === userToDisconnect);
       peers.splice(index, 1);
       userToDisconnect?.userId.close();
@@ -143,6 +162,7 @@ export function Videocall() {
         justifyContent: 'center',
         position: 'fixed',
         bottom: '12px',
+        zIndex: '1',
       },
     });
 
@@ -203,10 +223,8 @@ export function Videocall() {
         color: '#fff',
         border: 'none',
       },
-      onClick: async () => {
-        socket.close();
-        myStream.getTracks().forEach((track) => track.stop());
-        removeVideocallListeners();
+      onClick: () => {
+        myPeer.disconnect();
         setURL('/');
       },
       onMouseEnter: () => {
@@ -235,22 +253,26 @@ export function Videocall() {
     }
 
     /* When someone joins our room */
-    function connectToNewUser(userId: string, stream: MediaStream) {
+    function connectToNewUser(newUserId: string, stream: MediaStream) {
+      if (myPeer.disconnected && myPeer.id !== myUserId) {
+        return;
+      }
+
       if (stream.getAudioTracks().length) {
         stream.getAudioTracks()[0].enabled = !isSelfMuted;
       }
       /* Call and send our video stream to the user who just joined */
-      const call = myPeer.call(userId, stream, {
+      const call = myPeer.call(newUserId, stream, {
         metadata: userIdScreensharing,
       });
 
-      const otherUserVideo = videoWrap(userId);
+      const otherUserVideo = videoWrap(newUserId);
 
       /* Add their video */
       call.on('stream', (userVideoStream) => {
         addVideoStream(otherUserVideo, userVideoStream);
         adjustLayout(userIdScreensharing);
-        replaceStreamForNewUser(userId);
+        replaceStreamForNewUser(newUserId);
       });
 
       call.on('close', () => otherUserVideo.remove());
@@ -262,18 +284,18 @@ export function Videocall() {
         console.log('i am the one screen sharing');
         if (!localScreenStream) {
           localScreenStream = (await getLocalScreenStream()) as MediaStream;
-          console.log('local ', localScreenStream);
         }
         const [screenTrack] = localScreenStream.getVideoTracks();
         const newPeer = peers.find((peer) => peer.userId.peer === newUser);
+        if (!newPeer) return;
+
         const { peerConnection } = newPeer.userId;
         if (!peerConnection) return;
+
         const rtpSender = peerConnection
           .getSenders()
-          .find((sender) => sender.track.kind === screenTrack.kind);
-        console.log('rtp sender', rtpSender);
-        console.log('st', screenTrack);
-        rtpSender.replaceTrack(screenTrack);
+          .find((sender) => sender.track?.kind === screenTrack.kind);
+        rtpSender?.replaceTrack(screenTrack);
       }
     }
 
@@ -290,8 +312,8 @@ export function Videocall() {
         if (!peerConnection) return;
         const rtpSender = peerConnection
           .getSenders()
-          .find((sender) => sender.track.kind === screenTrack.kind);
-        rtpSender.replaceTrack(screenTrack);
+          .find((sender) => sender.track?.kind === screenTrack.kind);
+        rtpSender?.replaceTrack(screenTrack);
         socket.emit('change-layout', isScreensharing ? '' : myUserId);
       });
 
@@ -335,7 +357,7 @@ export function Videocall() {
         Array.from(el.children).find((elem) => elem.id === userIdScreensharing);
       if (!userScreensharingExists) {
         userIdScreensharing = '';
-        regularLayout(view, el);
+        regularLayout(myUserId, view, el, peers);
         return;
       }
 
@@ -344,8 +366,8 @@ export function Videocall() {
         userScreensharing && (byId(userScreensharing) as HTMLDivElement);
 
       screencaptureEl && !myUserIsScreensharing
-        ? screenshareLayout(screencaptureEl, view, el)
-        : regularLayout(view, el);
+        ? screenshareLayout(myUserId, screencaptureEl, view, el, peers)
+        : regularLayout(myUserId, view, el, peers);
     }
 
     buttons.append(shareScreenEl);
@@ -355,6 +377,10 @@ export function Videocall() {
     view.append(buttons);
 
     addVideocallListeners();
+
+    window.addEventListener('popstate', () => myPeer.disconnect(), {
+      once: true,
+    });
   }
 
   init();
@@ -468,9 +494,11 @@ function videoWrap(
 }
 
 function screenshareLayout(
+  myUserId: string,
   main: HTMLDivElement,
   parent: HTMLDivElement,
-  streamsDiv: HTMLDivElement
+  streamsDiv: HTMLDivElement,
+  peers: { userId: MediaConnection }[]
 ) {
   setStyle(main, { transform: 'rotateY(0deg)' });
 
@@ -489,13 +517,17 @@ function screenshareLayout(
     setStyle(secondary, { position: '', margin: '' });
     streamsDiv.append(secondary);
   } else {
-    twoPeopleLayout(secondary, parent, streamsDiv);
+    twoPeopleLayout(myUserId, secondary, parent, streamsDiv);
   }
 }
 
-function regularLayout(parent: HTMLDivElement, streamsDiv: HTMLDivElement) {
+function regularLayout(
+  myUserId: string,
+  parent: HTMLDivElement,
+  streamsDiv: HTMLDivElement,
+  peers: { userId: MediaConnection }[]
+) {
   const me = byId(myUserId) as HTMLDivElement;
-
   if (peers.length === 0) {
     const myVideo = me.firstChild as HTMLVideoElement;
     streamsDiv.append(me);
@@ -512,7 +544,7 @@ function regularLayout(parent: HTMLDivElement, streamsDiv: HTMLDivElement) {
   }
 
   if (peers.length === 1) {
-    twoPeopleLayout(me, parent, streamsDiv);
+    twoPeopleLayout(myUserId, me, parent, streamsDiv);
     return;
   }
 
@@ -546,6 +578,7 @@ function regularLayout(parent: HTMLDivElement, streamsDiv: HTMLDivElement) {
 }
 
 function twoPeopleLayout(
+  myUserId: string,
   secondary: HTMLDivElement,
   parent: HTMLDivElement,
   videosDiv: HTMLDivElement
@@ -594,7 +627,7 @@ function updateChildrenMeasurements(
       width: wrapperWidth,
     });
     const videoEl = child.firstChild as HTMLVideoElement;
-    setStyle(videoEl, { height, width });
+    setStyle(videoEl, { width: `${width}px`, height: `${height}px` });
   });
 }
 
