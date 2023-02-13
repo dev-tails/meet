@@ -3,7 +3,7 @@ import { Div, Video } from '../../ui/components';
 import { byId, setStyle } from '../../utils/DomUtils';
 
 const videoStyles = {
-  objectFit: 'cover',
+  objectFit: 'contain',
   borderRadius: '4px',
 };
 
@@ -86,8 +86,6 @@ export function regularLayout(
     const prevScreensharingDiv = parent.firstChild as HTMLDivElement;
     setStyle(prevScreensharingDiv, { width: '' });
 
-    const prevScreen = prevScreensharingDiv.firstChild as HTMLVideoElement;
-    setStyle(prevScreen, { objectFit: 'cover' });
     streamsDiv.append(prevScreensharingDiv);
   }
 
@@ -102,13 +100,11 @@ export function regularLayout(
   });
 
   const columns = getColumns(streamsDiv);
-  const videoWidth = window.innerWidth / columns;
   const rows = Math.ceil(streamsDiv.children.length / columns);
   const videoHeight = streamsDiv.offsetHeight / rows;
-  const widthStr = `${videoWidth - 40}px`;
   const heightStr = `${(videoHeight - 20).toString()}px`;
 
-  updateChildrenMeasurements(streamsDiv, widthStr, heightStr, 'auto', 'auto');
+  updateChildrenMeasurements(streamsDiv, 'auto', heightStr, 'auto', 'auto');
 }
 
 export function twoPeopleLayout(
@@ -118,7 +114,6 @@ export function twoPeopleLayout(
   videosDiv: HTMLDivElement
 ) {
   setStyle(secondary, {
-    objectFit: 'cover',
     position: 'fixed',
     zIndex: '1',
     width: '',
