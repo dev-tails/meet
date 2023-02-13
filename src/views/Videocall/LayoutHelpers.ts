@@ -46,7 +46,6 @@ export function screenshareLayout(
     setStyle(parent, { display: 'flex', flexDirection: 'row', height: '100%' });
     setStyle(main, { width: '84%', height: 'calc(100% - 68px)' });
     parent.prepend(main);
-    console.log('aqui?');
     updateChildrenMeasurements(streamsDiv, '100%', 'auto', '100%', 'auto'); //if not change width wrapper to auto as well
 
     setStyle(secondary, { position: '', margin: '' });

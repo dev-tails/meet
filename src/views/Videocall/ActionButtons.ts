@@ -4,6 +4,7 @@ import {
   desktopIcon,
   microphoneIcon,
   phoneIcon,
+  wandSparklesIcon,
 } from '../../utils/FontAwesomeIcons';
 import { isMac, muteSelf } from './MuteShortcuts';
 
@@ -24,7 +25,8 @@ const buttonStyles = {
 
 export function ActionButtons(
   onSharecaptureClick: () => void,
-  onExitCallClick: () => void
+  onExitCallClick: () => void,
+  onSurpriseClick: () => void
 ) {
   const buttons = Div({
     class: 'buttons-container',
@@ -39,9 +41,32 @@ export function ActionButtons(
     },
   });
 
+  const surpriseButton = Button({
+    class: 'action-buttons',
+    innerHTML: wandSparklesIcon,
+    styles: { ...buttonStyles, margin: '0 24px' },
+    onClick: onSurpriseClick,
+    onMouseEnter: () =>
+      setStyle(byId('surprise-tooltip') as HTMLDivElement, { opacity: '1' }),
+    onMouseLeave: () =>
+      setTimeout(
+        () =>
+          setStyle(byId('surprise-tooltip') as HTMLDivElement, {
+            opacity: '0',
+          }),
+        200
+      ),
+  });
+
+  const surpriseEl = buttonAndTooltip(
+    'surprise',
+    'Visual effects',
+    surpriseButton
+  );
+
   const shareScreenButton = Button({
     class: 'action-buttons',
-    id: 'share-button',
+    id: 'share-btn',
     innerHTML: desktopIcon,
     styles: buttonStyles,
     onClick: onSharecaptureClick,
@@ -109,6 +134,7 @@ export function ActionButtons(
   const exitCallSVG = exitCallButton.firstElementChild as HTMLElement;
   setStyle(exitCallSVG, { transform: 'rotate(137deg)' });
 
+  buttons.append(surpriseEl);
   buttons.append(shareScreenEl);
   buttons.append(muteEl);
   buttons.append(exitCallEl);
@@ -116,7 +142,7 @@ export function ActionButtons(
 }
 
 function buttonAndTooltip(
-  id: 'share' | 'mute' | 'end',
+  id: 'share' | 'mute' | 'end' | 'surprise',
   tooltipText: string,
   element: any
 ) {
@@ -136,7 +162,13 @@ function buttonAndTooltip(
       fontSize: '14px',
       position: 'absolute',
       transform: `translate(${
-        id === 'mute' ? '-26' : id === 'end' ? '-12' : '-34'
+        id === 'mute'
+          ? '-26'
+          : id === 'end'
+          ? '-12'
+          : id === 'surprise'
+          ? '-8'
+          : '-34'
       }%, -52px)`,
       opacity: '0',
       transition: 'opacity .5s',

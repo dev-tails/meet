@@ -58,6 +58,19 @@
       .buttons-container {
         bottom: env(safe-area-inset-bottom);
       }
+
+      .kieran {
+        animation: rotation 1s linear;
+      }
+
+      @keyframes rotation {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(359deg);
+        }
+      }
     </style>
   </head>
   <body id="root"></body>

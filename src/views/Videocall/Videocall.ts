@@ -204,7 +204,7 @@ export function Videocall() {
         transform: `rotateY(${isScreensharing ? '180' : '0'}deg)`,
       });
 
-      const shareScreenButton = byId('share-button') as HTMLButtonElement;
+      const shareScreenButton = byId('share-btn') as HTMLButtonElement;
       shareScreenButton &&
         setStyle(shareScreenButton, {
           border: isScreensharing ? 'none' : '1px solid #5b67da',
@@ -237,6 +237,41 @@ export function Videocall() {
       setURL('/');
     }
 
+    /// remove
+    function onSurpriseClick() {
+      socket.emit('surprise', myUserId);
+    }
+
+    socket.on('surprise', (triggerUser) => {
+      const image = document.createElement('img') as HTMLImageElement;
+      image.src = '/km.jpg';
+      image.alt = 'km';
+
+      image.style.objectFit = 'contain';
+      image.style.height = '100%';
+      image.style.width = '100%';
+      image.style.position = 'absolute';
+      image.style.left = '0';
+      image.style.top = '0';
+      image.className = 'kieran';
+
+      const userTriggered = byId(triggerUser);
+      let prevPos;
+      if (userTriggered) {
+        prevPos = userTriggered.style.position;
+        userTriggered.style.position =
+          prevPos === 'fixed' ? 'fixed' : 'relative';
+        userTriggered.append(image);
+      }
+      setTimeout(() => {
+        if (userTriggered) {
+          userTriggered.style.position = prevPos;
+          image.remove();
+        }
+      }, 2000);
+    });
+    //////
+
     function adjustLayout(userScreensharing?: string) {
       console.log('user screensharer in adjust:', userIdScreensharing);
       const userScreensharingExists =
@@ -263,7 +298,9 @@ export function Videocall() {
     });
 
     view.append(el);
-    view.append(ActionButtons(onSharecaptureClick, onExitCallClick));
+    view.append(
+      ActionButtons(onSharecaptureClick, onExitCallClick, onSurpriseClick)
+    );
   }
 
   init();
