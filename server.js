@@ -21,7 +21,6 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   socket.on('join-room', (roomId, userId) => {
     socket.join(roomId);
-    console.log('join room, user id:', userId);
 
     socket.broadcast.to(roomId).emit('user-connected', userId);
     socket.on('change-layout', (userId) => {

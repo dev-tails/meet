@@ -100,10 +100,9 @@ export function regularLayout(
   });
 
   const columns = getColumns(streamsDiv);
-  const rows = Math.ceil(streamsDiv.children.length / columns);
-  const videoHeight = streamsDiv.offsetHeight / rows;
-  const heightStr = `${(videoHeight - 20).toString()}px`;
-
+  const rows = Math.ceil(streamsDiv.childElementCount / columns);
+  const videoHeight = (streamsDiv.offsetHeight - 40) / rows;
+  const heightStr = `${videoHeight}px`;
   updateChildrenMeasurements(streamsDiv, 'auto', heightStr, 'auto', 'auto');
 }
 
